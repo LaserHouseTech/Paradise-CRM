@@ -1083,11 +1083,12 @@ export const ClientsView: React.FC = () => {
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
               >
                 <option value="Prospectado" className="bg-neutral-900 text-white">1. Prospectado</option>
-                <option value="Demo pronta" className="bg-neutral-900 text-white">2. Demo pronta</option>
-                <option value="Demo apresentada" className="bg-neutral-900 text-white">3. Demo apresentada</option>
-                <option value="Negociação" className="bg-neutral-900 text-white">4. Negociação</option>
-                <option value="Fechado" className="bg-neutral-900 text-white">5. Fechado (Ganho)</option>
-                <option value="Perdido" className="bg-neutral-900 text-white">6. Perdido</option>
+                <option value="Demo em produção" className="bg-neutral-900 text-white">2. Demo em produção</option>
+                <option value="Demo pronta" className="bg-neutral-900 text-white">3. Demo pronta</option>
+                <option value="Demo apresentada" className="bg-neutral-900 text-white">4. Demo apresentada</option>
+                <option value="Negociação" className="bg-neutral-900 text-white">5. Negociação</option>
+                <option value="Fechado" className="bg-neutral-900 text-white">6. Fechado (Ganho)</option>
+                <option value="Perdido" className="bg-neutral-900 text-white">7. Perdido</option>
               </select>
             </div>
           </div>
@@ -1331,11 +1332,12 @@ export const ClientsView: React.FC = () => {
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
                 >
                   <option value="Prospectado" className="bg-neutral-900 text-white">1. Prospectado</option>
-                  <option value="Demo pronta" className="bg-neutral-900 text-white">2. Demo pronta</option>
-                  <option value="Demo apresentada" className="bg-neutral-900 text-white">3. Demo apresentada</option>
-                  <option value="Negociação" className="bg-neutral-900 text-white">4. Negociação</option>
-                  <option value="Fechado" className="bg-neutral-900 text-white">5. Fechado (Ganho)</option>
-                  <option value="Perdido" className="bg-neutral-900 text-white">6. Perdido</option>
+                  <option value="Demo em produção" className="bg-neutral-900 text-white">2. Demo em produção</option>
+                  <option value="Demo pronta" className="bg-neutral-900 text-white">3. Demo pronta</option>
+                  <option value="Demo apresentada" className="bg-neutral-900 text-white">4. Demo apresentada</option>
+                  <option value="Negociação" className="bg-neutral-900 text-white">5. Negociação</option>
+                  <option value="Fechado" className="bg-neutral-900 text-white">6. Fechado (Ganho)</option>
+                  <option value="Perdido" className="bg-neutral-900 text-white">7. Perdido</option>
                 </select>
               </div>
 

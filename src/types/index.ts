@@ -20,6 +20,7 @@ export type ClientStatus =
 
 export type PipelineStage = 
   | 'Prospectado' 
+  | 'Demo em produção'
   | 'Demo pronta' 
   | 'Demo apresentada' 
   | 'Negociação' 

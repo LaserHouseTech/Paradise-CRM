@@ -61,6 +61,7 @@ export const PipelineView: React.FC = () => {
 
   const stages: PipelineStage[] = [
     'Prospectado',
+    'Demo em produção',
     'Demo pronta',
     'Demo apresentada',
     'Negociação',
@@ -75,6 +76,12 @@ export const PipelineView: React.FC = () => {
       bg: 'bg-blue-500/10',
       dot: 'bg-blue-400',
       text: 'text-blue-400',
+    },
+    'Demo em produção': {
+      border: 'border-cyan-500/20',
+      bg: 'bg-cyan-500/10',
+      dot: 'bg-cyan-400',
+      text: 'text-cyan-400',
     },
     'Demo pronta': {
       border: 'border-amber-500/20',

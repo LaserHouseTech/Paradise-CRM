@@ -159,6 +159,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Normalize clients so pipelineStage is always defined
         const validStages: PipelineStage[] = [
           'Prospectado',
+          'Demo em produção',
           'Demo pronta',
           'Demo apresentada',
           'Negociação',

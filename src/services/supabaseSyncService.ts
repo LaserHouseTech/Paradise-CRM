@@ -258,6 +258,7 @@ export const supabaseSyncService = {
           c.pipelineStage === 'Negociação' ||
           c.pipelineStage === 'Demo apresentada' ||
           c.pipelineStage === 'Demo pronta' ||
+          c.pipelineStage === 'Demo em produção' ||
           c.pipelineStage === 'Prospectado' ||
           c.status === 'Proposta enviada' ||
           c.status === 'Em negociação' ||
@@ -482,6 +483,7 @@ export const supabaseSyncService = {
 
         const validStages = [
           'Prospectado',
+          'Demo em produção',
           'Demo pronta',
           'Demo apresentada',
           'Negociação',
