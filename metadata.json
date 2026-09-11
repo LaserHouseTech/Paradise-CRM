@@ -1,0 +1,6 @@
+{
+  "name": "Paradiso CRM & Gestão Financeira",
+  "description": "Sistema interno de CRM e gestão financeira local da agência digital Paradiso com design minimalista Apple em tema escuro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
