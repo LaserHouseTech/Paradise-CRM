@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Vibrant blue radial gradient exactly matching the uploaded user avatar -->
+    <radialGradient id="avatarGlow" cx="44%" cy="34%" r="68%" fx="36%" fy="24%">
+      <stop offset="0%" stop-color="#00aaff" />
+      <stop offset="28%" stop-color="#056fff" />
+      <stop offset="62%" stop-color="#1444ec" />
+      <stop offset="88%" stop-color="#0e23b8" />
+      <stop offset="100%" stop-color="#061280" />
+    </radialGradient>
+  </defs>
+
+  <!-- Circular background -->
+  <circle cx="256" cy="256" r="256" fill="url(#avatarGlow)" />
+
+  <g fill="#FFFFFF">
+    <!-- Center ray (vertical) -->
+    <rect x="242" y="126" width="28" height="116" rx="14" />
+
+    <!-- Left inner ray (-24°) -->
+    <rect x="243" y="130" width="26" height="112" rx="13" transform="rotate(-24 256 248)" />
+
+    <!-- Right inner ray (+24°) -->
+    <rect x="243" y="130" width="26" height="112" rx="13" transform="rotate(24 256 248)" />
+
+    <!-- Left outer ray (-48°) -->
+    <rect x="244" y="142" width="24" height="104" rx="12" transform="rotate(-48 256 248)" />
+
+    <!-- Right outer ray (+48°) -->
+    <rect x="244" y="142" width="24" height="104" rx="12" transform="rotate(48 256 248)" />
+
+    <!-- Arched horizontal bar and curving stem -->
+    <path d="M 88 280 C 82 278 80 271 85 264 C 95 252 165 244 256 244 C 347 244 417 252 427 264 C 432 271 430 278 424 280 C 405 280 345 268 280 268 C 271 268 266 274 264 282 C 258 316 268 360 292 388 C 295 392 293 398 287 400 L 270 402 C 263 402 258 398 254 391 C 236 360 228 320 234 284 C 236 274 230 268 220 268 C 165 268 108 280 88 280 Z" />
+  </g>
+</svg>
