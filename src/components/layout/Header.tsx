@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       id="paradiso-header"
-      className="h-16 px-3 sm:px-6 bg-[#0f1014]/90 border-b border-white/[0.08] flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl transition-all"
+      className="h-16 px-3 sm:px-6 bg-[#080a10]/80 border-b border-white/[0.08] flex items-center justify-between sticky top-0 z-30 backdrop-blur-2xl transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
     >
       {/* Left: Mobile Menu Toggle + Desktop Sidebar Toggle + View Title & Breadcrumb */}
       <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -129,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
           id="desktop-sidebar-collapse-btn"
           type="button"
           onClick={toggleSidebarCollapse}
-          className="hidden lg:flex p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-neutral-300 hover:text-white transition active:scale-[0.98] shrink-0"
+          className="hidden lg:flex p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-neutral-300 hover:text-white transition active:scale-[0.98] shrink-0 hover:border-blue-500/30 hover:shadow-[0_0_12px_rgba(59,130,246,0.15)]"
           title={isSidebarCollapsed ? 'Expandir barra lateral (Ctrl+B)' : 'Compactar barra lateral (Ctrl+B)'}
         >
           {isSidebarCollapsed ? (
@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
             <h1 className="text-xs sm:text-base font-bold tracking-tight text-white truncate max-w-[150px] sm:max-w-none">
               {currentViewInfo.title}
             </h1>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 hidden sm:inline-block" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 hidden sm:inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
           </div>
           <p className="text-[10px] sm:text-xs text-neutral-400 font-normal truncate mt-0.5 hidden sm:block">
             {currentViewInfo.subtitle}
@@ -160,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
             id="period-filter-btn"
             type="button"
             onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-medium text-neutral-200 transition active:scale-[0.98]"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-medium text-neutral-200 transition active:scale-[0.98] hover:border-white/20"
             title="Filtrar período operacional"
           >
             <Calendar className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
@@ -174,10 +174,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           {periodDropdownOpen && (
             <div
-              className="absolute right-0 mt-2 w-48 rounded-2xl bg-[#15161d] border border-white/10 shadow-2xl p-1.5 z-50 backdrop-blur-2xl animate-fadeIn"
+              className="absolute right-0 mt-2 w-52 rounded-2xl bg-[#0d101c]/95 border border-white/15 shadow-2xl shadow-black p-1.5 z-50 backdrop-blur-2xl ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150"
             >
               <div className="px-2.5 py-1 mb-1 border-b border-white/5">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400">
                   Período de Análise
                 </span>
               </div>
@@ -193,12 +193,12 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition flex items-center justify-between ${
                       isSelected
-                        ? 'bg-white/15 text-white font-semibold'
+                        ? 'bg-blue-600/20 text-white font-semibold border border-blue-500/30'
                         : 'text-neutral-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
                     <span>{periodLabels[key]}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
                   </button>
                 );
               })}
@@ -210,7 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-5 w-px bg-white/[0.08] hidden sm:block" />
 
         {/* Cohesive Supabase Sync Capsule */}
-        <div className="hidden md:flex items-center rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/15 transition overflow-hidden">
+        <div className="hidden md:flex items-center rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition overflow-hidden">
           <button
             id="supabase-status-header-btn"
             type="button"
@@ -229,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : supabaseSyncState === 'synced' ? (
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
               </span>
             ) : supabaseSyncState === 'error' ? (
               <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -275,7 +275,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onOpenAlertsModal}
           className={`relative p-2 rounded-xl border transition active:scale-[0.98] shrink-0 ${
             alerts.length > 0
-              ? 'bg-white/[0.04] border-white/10 text-neutral-200 hover:bg-white/[0.08]'
+              ? 'bg-white/[0.05] border-white/15 text-neutral-200 hover:bg-white/[0.08] hover:border-amber-400/40 hover:shadow-[0_0_15px_rgba(251,191,36,0.15)]'
               : 'bg-white/[0.02] border-white/5 text-neutral-400 hover:text-neutral-200'
           }`}
           title={`Notificações do sistema (${alerts.length} pendência(s))`}
@@ -284,7 +284,9 @@ export const Header: React.FC<HeaderProps> = ({
           {alerts.length > 0 && (
             <span
               className={`absolute -top-1 -right-1 min-w-4 h-4 px-1 text-[10px] font-bold rounded-full flex items-center justify-center text-white shadow-sm ${
-                dangerAlertsCount > 0 ? 'bg-red-500' : 'bg-amber-500'
+                dangerAlertsCount > 0
+                  ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'
+                  : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
               }`}
             >
               {alerts.length}
@@ -297,7 +299,7 @@ export const Header: React.FC<HeaderProps> = ({
           id="lock-screen-btn"
           type="button"
           onClick={() => setIsLocked(true)}
-          className="hidden sm:flex p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-neutral-400 hover:text-neutral-200 transition active:scale-[0.98] shrink-0"
+          className="hidden sm:flex p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-neutral-400 hover:text-neutral-200 transition active:scale-[0.98] shrink-0 hover:border-white/20"
           title="Bloquear sessão (Segurança)"
         >
           <Lock className="w-4 h-4" />
@@ -311,37 +313,11 @@ export const Header: React.FC<HeaderProps> = ({
           id="quick-action-btn"
           type="button"
           onClick={onOpenQuickAction}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-semibold shadow-sm transition active:scale-[0.98] shrink-0"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-semibold shadow-[0_0_20px_rgba(255,255,255,0.18)] hover:shadow-[0_0_25px_rgba(255,255,255,0.28)] transition active:scale-[0.98] shrink-0"
           title="Cadastrar nova entrada, saída ou ação rápida"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span className="hidden sm:inline whitespace-nowrap">Ação Rápida</span>
-        </button>
-
-        {/* User Profile Pill */}
-        <button
-          id="user-profile-header-btn"
-          type="button"
-          onClick={() => setCurrentView('settings')}
-          className="flex items-center gap-2 pl-1 pr-1 sm:pr-2.5 py-1 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 transition text-left group shrink-0 active:scale-[0.98]"
-          title="Meu Perfil e Configurações"
-        >
-          <div className="relative">
-            <img
-              src={data.settings.userAvatarUrl || '/user_avatar.svg'}
-              alt="Foto de Perfil"
-              className="w-7 h-7 rounded-lg object-cover ring-1 ring-white/15"
-            />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-[#0f1014]" />
-          </div>
-          <div className="hidden xl:block text-left pr-0.5">
-            <p className="text-[11px] font-semibold text-white leading-tight group-hover:text-blue-300 transition truncate max-w-[130px]">
-              {data.settings.userName || data.settings.ownerName || 'Luís Santos'}
-            </p>
-            <p className="text-[9px] text-neutral-400 leading-tight">
-              {data.settings.userRole || 'CEO'}
-            </p>
-          </div>
         </button>
       </div>
     </header>

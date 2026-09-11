@@ -955,8 +955,7 @@ export const ClientsView: React.FC = () => {
                   let autoStage: PipelineStage = formData.pipelineStage;
                   if (newStatus === 'Cliente ativo' || newStatus === 'Cliente recorrente') autoStage = 'Fechado';
                   else if (newStatus === 'Lead' && formData.pipelineStage === 'Fechado') autoStage = 'Prospectado';
-                  else if (newStatus === 'Em negociação') autoStage = 'Negociação';
-                  else if (newStatus === 'Proposta enviada') autoStage = 'Proposta enviada';
+                  else if (newStatus === 'Em negociação' || newStatus === 'Proposta enviada') autoStage = 'Negociação';
                   setFormData({ ...formData, status: newStatus, pipelineStage: autoStage });
                 }}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
@@ -977,14 +976,11 @@ export const ClientsView: React.FC = () => {
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
               >
                 <option value="Prospectado" className="bg-neutral-900 text-white">1. Prospectado</option>
-                <option value="Primeiro contato" className="bg-neutral-900 text-white">2. Primeiro contato</option>
-                <option value="Respondeu" className="bg-neutral-900 text-white">3. Respondeu</option>
-                <option value="Qualificado" className="bg-neutral-900 text-white">4. Qualificado</option>
-                <option value="Demo apresentada" className="bg-neutral-900 text-white">5. Demo apresentada</option>
-                <option value="Proposta enviada" className="bg-neutral-900 text-white">6. Proposta enviada</option>
-                <option value="Negociação" className="bg-neutral-900 text-white">7. Negociação</option>
-                <option value="Fechado" className="bg-neutral-900 text-white">8. Fechado (Ganho)</option>
-                <option value="Perdido" className="bg-neutral-900 text-white">9. Perdido</option>
+                <option value="Demo pronta" className="bg-neutral-900 text-white">2. Demo pronta</option>
+                <option value="Demo apresentada" className="bg-neutral-900 text-white">3. Demo apresentada</option>
+                <option value="Negociação" className="bg-neutral-900 text-white">4. Negociação</option>
+                <option value="Fechado" className="bg-neutral-900 text-white">5. Fechado (Ganho)</option>
+                <option value="Perdido" className="bg-neutral-900 text-white">6. Perdido</option>
               </select>
             </div>
           </div>
@@ -1204,8 +1200,7 @@ export const ClientsView: React.FC = () => {
                     let autoStage: PipelineStage = editFormData.pipelineStage;
                     if (newStatus === 'Cliente ativo' || newStatus === 'Cliente recorrente') autoStage = 'Fechado';
                     else if (newStatus === 'Lead' && editFormData.pipelineStage === 'Fechado') autoStage = 'Prospectado';
-                    else if (newStatus === 'Em negociação') autoStage = 'Negociação';
-                    else if (newStatus === 'Proposta enviada') autoStage = 'Proposta enviada';
+                    else if (newStatus === 'Em negociação' || newStatus === 'Proposta enviada') autoStage = 'Negociação';
                     else if (newStatus === 'Cancelado') autoStage = 'Perdido';
                     setEditFormData({ ...editFormData, status: newStatus, pipelineStage: autoStage });
                   }}
@@ -1229,14 +1224,11 @@ export const ClientsView: React.FC = () => {
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
                 >
                   <option value="Prospectado" className="bg-neutral-900 text-white">1. Prospectado</option>
-                  <option value="Primeiro contato" className="bg-neutral-900 text-white">2. Primeiro contato</option>
-                  <option value="Respondeu" className="bg-neutral-900 text-white">3. Respondeu</option>
-                  <option value="Qualificado" className="bg-neutral-900 text-white">4. Qualificado</option>
-                  <option value="Demo apresentada" className="bg-neutral-900 text-white">5. Demo apresentada</option>
-                  <option value="Proposta enviada" className="bg-neutral-900 text-white">6. Proposta enviada</option>
-                  <option value="Negociação" className="bg-neutral-900 text-white">7. Negociação</option>
-                  <option value="Fechado" className="bg-neutral-900 text-white">8. Fechado (Ganho)</option>
-                  <option value="Perdido" className="bg-neutral-900 text-white">9. Perdido</option>
+                  <option value="Demo pronta" className="bg-neutral-900 text-white">2. Demo pronta</option>
+                  <option value="Demo apresentada" className="bg-neutral-900 text-white">3. Demo apresentada</option>
+                  <option value="Negociação" className="bg-neutral-900 text-white">4. Negociação</option>
+                  <option value="Fechado" className="bg-neutral-900 text-white">5. Fechado (Ganho)</option>
+                  <option value="Perdido" className="bg-neutral-900 text-white">6. Perdido</option>
                 </select>
               </div>
 

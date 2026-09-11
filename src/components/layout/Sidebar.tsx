@@ -19,8 +19,6 @@ import {
   Settings,
   ChevronRight,
   ShieldCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
   X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -150,22 +148,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
       <>
         {/* Top Header */}
         <div
-          className={`p-3.5 border-b border-white/[0.08] flex items-center shrink-0 bg-white/[0.01] ${
+          className={`p-3.5 border-b border-white/[0.08] flex items-center shrink-0 bg-white/[0.02] ${
             isCollapsed ? 'justify-center' : 'justify-between'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={!isDrawer ? toggleSidebarCollapse : undefined}
-              className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shadow-md cursor-pointer hover:opacity-90 transition active:scale-95 shrink-0"
-              title={isCollapsed ? 'Expandir barra lateral' : 'Paradiso'}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className="relative w-8 h-8 rounded-full overflow-hidden flex items-center justify-center ring-1 ring-white/20 shadow-[0_0_14px_rgba(59,130,246,0.35)] shrink-0 bg-[#080910]"
             >
               <img src="/logo.svg" alt="Paradiso" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </button>
+              <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/30 pointer-events-none" />
+            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold tracking-tight text-white flex items-center gap-1.5">
+                  Paradiso
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                    PRO
+                  </span>
+                </span>
+                <span className="text-[10px] text-neutral-400 truncate">Workspace Espacial</span>
+              </div>
+            )}
           </div>
 
-          {isDrawer ? (
+          {isDrawer && (
             <button
               type="button"
               onClick={onCloseMobile}
@@ -174,18 +181,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
             >
               <X className="w-4 h-4" />
             </button>
-          ) : (
-            !isCollapsed && (
-              <button
-                type="button"
-                id="sidebar-collapse-toggle-btn"
-                onClick={toggleSidebarCollapse}
-                className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-white/10 transition active:scale-95"
-                title="Compactar barra lateral (Ctrl+B)"
-              >
-                <PanelLeftClose className="w-4 h-4" />
-              </button>
-            )
           )}
         </div>
 
@@ -219,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
                       title={item.badge ? `${item.label} (${item.badge})` : item.label}
                       className={`w-full flex items-center justify-center p-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 relative group active:scale-[0.97] ${
                         isActive
-                          ? 'bg-white/[0.12] text-white shadow-sm shadow-black/30'
+                          ? 'bg-white/[0.12] text-white border border-white/20 shadow-[0_0_15px_rgba(59,130,246,0.18)]'
                           : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
                       }`}
                     >
@@ -230,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
                       />
                       {item.badge !== undefined && item.badge > 0 && (
                         <span
-                          className={`absolute top-1 right-1 min-w-[15px] h-3.5 px-0.5 rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-[#121318] ${
+                          className={`absolute top-1 right-1 min-w-[15px] h-3.5 px-0.5 rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-[#080a12] ${
                             item.badgeColor || 'bg-emerald-500 text-neutral-950'
                           }`}
                         >
@@ -249,7 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
                     onClick={() => handleItemClick(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-150 group active:scale-[0.99] ${
                       isActive
-                        ? 'bg-white/[0.12] text-white shadow-sm shadow-black/30'
+                        ? 'bg-white/[0.1] text-white border border-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_0_15px_rgba(59,130,246,0.15)] font-semibold'
                         : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
                     }`}
                   >
@@ -369,7 +364,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
       {/* Desktop Persistent Sidebar (Hidden on < lg) */}
       <aside
         id="paradiso-sidebar-desktop"
-        className={`hidden lg:flex shrink-0 bg-[#121318]/95 border-r border-white/[0.08] h-screen flex-col justify-between overflow-y-auto backdrop-blur-xl z-20 transition-all duration-300 ease-in-out ${
+        className={`hidden lg:flex shrink-0 bg-[#080a12]/85 border-r border-white/[0.08] h-screen flex-col justify-between overflow-y-auto backdrop-blur-2xl z-20 transition-all duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.5)] ${
           isSidebarCollapsed ? 'w-20' : 'w-64'
         }`}
       >
@@ -381,7 +376,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
         <div className="fixed inset-0 z-50 lg:hidden flex">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
             onClick={onCloseMobile}
             aria-hidden="true"
           />
@@ -389,7 +384,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
           {/* Slide-out Drawer */}
           <aside
             id="paradiso-sidebar-mobile"
-            className="relative w-72 max-w-[85vw] bg-[#121318] border-r border-white/10 h-full flex flex-col justify-between overflow-y-auto shadow-2xl z-10 animate-in slide-in-from-left duration-200"
+            className="relative w-72 max-w-[85vw] bg-[#080a12]/95 border-r border-white/10 h-full flex flex-col justify-between overflow-y-auto shadow-2xl z-10 backdrop-blur-2xl animate-in slide-in-from-left duration-200"
           >
             {renderSidebarContent(true)}
           </aside>

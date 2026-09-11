@@ -133,19 +133,22 @@ interface AppContextType {
   exportCSV: (type: 'clients' | 'receivables' | 'payables' | 'subscriptions' | 'cashflow') => void;
 }
 
-const STORAGE_KEY = 'paradiso_crm_v2_clean';
-const LEGACY_STORAGE_KEY = 'paradiso_local_management_v1';
+const STORAGE_KEY = 'paradiso_crm_v3_production';
+const LEGACY_STORAGE_KEYS = [
+  'paradiso_crm_v2_clean',
+  'paradiso_local_management_v1',
+  'paradiso_crm_data',
+];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [data, setData] = useState<SystemData>(() => {
     try {
-      // Discard legacy demo storage if present so client base starts completely clean
+      // Discard legacy demo storage so client base and accounts start completely zeroed for real production
       if (typeof window !== 'undefined') {
-        const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-        if (legacy && !localStorage.getItem(STORAGE_KEY)) {
-          localStorage.removeItem(LEGACY_STORAGE_KEY);
+        for (const oldKey of LEGACY_STORAGE_KEYS) {
+          localStorage.removeItem(oldKey);
         }
       }
 
@@ -154,12 +157,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = JSON.parse(saved);
 
         // Normalize clients so pipelineStage is always defined
+        const validStages: PipelineStage[] = [
+          'Prospectado',
+          'Demo pronta',
+          'Demo apresentada',
+          'Negociação',
+          'Fechado',
+          'Perdido',
+        ];
         const normalizedClients: Client[] = (parsed.clients || []).map((c: any) => {
           let stage: PipelineStage = c.pipelineStage;
-          if (!stage) {
-            if (c.status === 'Lead') stage = 'Prospectado';
-            else if (c.status === 'Em negociação') stage = 'Negociação';
-            else if (c.status === 'Proposta enviada') stage = 'Proposta enviada';
+          if (!stage || !validStages.includes(stage)) {
+            const raw = stage as string;
+            if (raw === 'Primeiro contato' || raw === 'Respondeu' || raw === 'Qualificado') stage = 'Prospectado';
+            else if (raw === 'Proposta enviada') stage = 'Negociação';
+            else if (c.status === 'Lead') stage = 'Prospectado';
+            else if (c.status === 'Em negociação' || c.status === 'Proposta enviada') stage = 'Negociação';
             else if (c.status === 'Perdido' || c.status === 'Cancelado') stage = 'Perdido';
             else if (c.status === 'Cliente ativo' || c.status === 'Cliente recorrente') stage = 'Fechado';
             else stage = 'Prospectado';
@@ -413,8 +426,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let pipelineStage = clientData.pipelineStage;
     if (!pipelineStage) {
       if (clientData.status === 'Lead') pipelineStage = 'Prospectado';
-      else if (clientData.status === 'Em negociação') pipelineStage = 'Negociação';
-      else if (clientData.status === 'Proposta enviada') pipelineStage = 'Proposta enviada';
+      else if (clientData.status === 'Em negociação' || clientData.status === 'Proposta enviada') pipelineStage = 'Negociação';
       else if (clientData.status === 'Perdido' || clientData.status === 'Cancelado') pipelineStage = 'Perdido';
       else if (clientData.status === 'Cliente ativo' || clientData.status === 'Cliente recorrente') pipelineStage = 'Fechado';
       else pipelineStage = 'Prospectado';
@@ -443,8 +455,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let pipelineStage = updates.pipelineStage ?? c.pipelineStage;
         if (!updates.pipelineStage && updates.status && updates.status !== c.status) {
           if (updates.status === 'Lead' && c.pipelineStage === 'Fechado') pipelineStage = 'Prospectado';
-          else if (updates.status === 'Em negociação') pipelineStage = 'Negociação';
-          else if (updates.status === 'Proposta enviada') pipelineStage = 'Proposta enviada';
+          else if (updates.status === 'Em negociação' || updates.status === 'Proposta enviada') pipelineStage = 'Negociação';
           else if (updates.status === 'Cliente ativo' || updates.status === 'Cliente recorrente') pipelineStage = 'Fechado';
           else if (updates.status === 'Perdido' || updates.status === 'Cancelado') pipelineStage = 'Perdido';
         }
@@ -493,8 +504,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       newStatus = 'Cliente ativo';
     } else if (stage === 'Perdido') {
       newStatus = 'Perdido';
-    } else if (stage === 'Proposta enviada') {
-      newStatus = 'Proposta enviada';
     } else if (stage === 'Negociação') {
       newStatus = 'Em negociação';
     } else {
@@ -1342,17 +1351,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetToInitialData = () => {
-    setData(initialSystemData);
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    for (const oldKey of LEGACY_STORAGE_KEYS) {
+      localStorage.removeItem(oldKey);
+    }
+    const freshZeroData: SystemData = {
+      ...initialSystemData,
+      clients: [],
+      projects: [],
+      subscriptions: [],
+      receivables: [],
+      payables: [],
+      transfers: [],
+      reserves: [],
+      proLabore: [],
+      referrals: [],
+      marketingCampaigns: [],
+      financialAccounts: initialSystemData.financialAccounts.map((a) => ({
+        ...a,
+        balance: 0.0,
+        initialBalance: 0.0,
+      })),
+    };
+    setData(freshZeroData);
     addAuditLog('Reset Completo', 'Sistema reiniciado para a base zerada.', 'Settings');
   };
 
   const clearDatabaseAndStartFresh = async (): Promise<{ success: boolean; message: string }> => {
     try {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-      setData(initialSystemData);
+      for (const oldKey of LEGACY_STORAGE_KEYS) {
+        localStorage.removeItem(oldKey);
+      }
+      const freshZeroData: SystemData = {
+        ...initialSystemData,
+        clients: [],
+        projects: [],
+        subscriptions: [],
+        receivables: [],
+        payables: [],
+        transfers: [],
+        reserves: [],
+        proLabore: [],
+        referrals: [],
+        marketingCampaigns: [],
+        financialAccounts: initialSystemData.financialAccounts.map((a) => ({
+          ...a,
+          balance: 0.0,
+          initialBalance: 0.0,
+        })),
+      };
+      setData(freshZeroData);
 
       setSupabaseSyncState('syncing');
       setSupabaseSyncMessage('Zerando tabelas no Supabase...');
@@ -1360,7 +1409,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const clearRes = await supabaseSyncService.clearAllDataFromSupabase();
 
       // Push clean snapshot
-      await supabaseSyncService.pushAllDataToSupabase(initialSystemData);
+      await supabaseSyncService.pushAllDataToSupabase(freshZeroData);
 
       setSupabaseSyncState('synced');
       setLastSupabaseSyncTime(new Date());

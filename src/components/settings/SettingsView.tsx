@@ -385,9 +385,9 @@ export const SettingsView: React.FC = () => {
                 <img
                   src={userAvatarUrl || '/user_avatar.svg'}
                   alt="Minha Foto de Perfil"
-                  className="w-24 h-24 rounded-2xl object-cover ring-4 ring-blue-500/30 shadow-xl bg-neutral-900"
+                  className="w-24 h-24 rounded-full object-cover ring-4 ring-blue-500/30 shadow-xl bg-neutral-900"
                 />
-                <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-blue-600 text-white shadow-md">
+                <div className="absolute bottom-0 right-0 p-1.5 rounded-full bg-blue-600 text-white shadow-md ring-2 ring-[#0a0b12]">
                   <Camera className="w-3.5 h-3.5" />
                 </div>
               </div>

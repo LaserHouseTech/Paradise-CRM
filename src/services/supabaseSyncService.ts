@@ -399,13 +399,6 @@ export const supabaseSyncService = {
         };
       }
 
-      if (!hasRelationalData && (!backupData || !backupData.clients || backupData.clients.length === 0)) {
-        return {
-          success: false,
-          message: 'Nenhum dado encontrado no banco de dados Supabase.',
-        };
-      }
-
       // Map Receivables first (used to compute client totalSpent)
       const mappedReceivables: Receivable[] = receivablesRows.map((r: any) => ({
         id: r.id,
@@ -434,16 +427,34 @@ export const supabaseSyncService = {
           .filter((rec) => rec.clientId === c.id && rec.status === 'Pago')
           .reduce((sum, rec) => sum + rec.grossAmount, 0);
 
+        const validStages = [
+          'Prospectado',
+          'Demo pronta',
+          'Demo apresentada',
+          'Negociação',
+          'Fechado',
+          'Perdido',
+        ];
+
         const defaultStage =
           c.status === 'Cliente ativo' || c.status === 'Cliente recorrente'
             ? 'Fechado'
-            : c.status === 'Em negociação'
+            : c.status === 'Em negociação' || c.status === 'Proposta enviada'
             ? 'Negociação'
-            : c.status === 'Proposta enviada'
-            ? 'Proposta enviada'
             : c.status === 'Perdido' || c.status === 'Cancelado'
             ? 'Perdido'
             : 'Prospectado';
+
+        let resolvedStage = c.pipeline_stage;
+        if (!resolvedStage || !validStages.includes(resolvedStage)) {
+          if (resolvedStage === 'Primeiro contato' || resolvedStage === 'Respondeu' || resolvedStage === 'Qualificado') {
+            resolvedStage = 'Prospectado';
+          } else if (resolvedStage === 'Proposta enviada') {
+            resolvedStage = 'Negociação';
+          } else {
+            resolvedStage = defaultStage;
+          }
+        }
 
         return {
           id: c.id,
@@ -457,7 +468,7 @@ export const supabaseSyncService = {
           state: c.state || '',
           address: c.address || '',
           status: (c.status as any) || 'Cliente ativo',
-          pipelineStage: (c.pipeline_stage as any) || defaultStage,
+          pipelineStage: resolvedStage as any,
           origin: (c.origin as any) || 'Prospecção ativa',
           notes: c.notes || '',
           avatarUrl: c.avatar_url || undefined,
@@ -602,7 +613,10 @@ export const supabaseSyncService = {
       return {
         success: true,
         data: completeData,
-        message: `${mappedClients.length} clientes, ${mappedReceivables.length} recebíveis e ${mappedPayables.length} despesas sincronizados com o Supabase!`,
+        message:
+          mappedClients.length === 0
+            ? 'Banco de dados Supabase sincronizado com sucesso (base zerada para produção real)!'
+            : `${mappedClients.length} clientes, ${mappedReceivables.length} recebíveis e ${mappedPayables.length} despesas sincronizados com o Supabase!`,
       };
     } catch (err: any) {
       return {
@@ -729,7 +743,19 @@ export const supabaseSyncService = {
       await supabase.from('clients').delete().neq('id', '___keep_none___');
       cleared.push('clients');
       
-      // Update app_state_backup to empty state
+      // Zero out financial_accounts balances in Supabase
+      const { data: accounts } = await supabase.from('financial_accounts').select('id');
+      if (accounts && accounts.length > 0) {
+        for (const acc of accounts) {
+          await supabase.from('financial_accounts').update({
+            initial_balance: 0.0,
+            current_balance: 0.0,
+          }).eq('id', acc.id);
+        }
+      }
+      cleared.push('financial_accounts');
+
+      // Update app_state_backup to clean empty state
       await supabase.from('app_state_backup').delete().neq('id', '___keep_none___');
       cleared.push('app_state_backup');
 

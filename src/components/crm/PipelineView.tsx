@@ -39,11 +39,8 @@ export const PipelineView: React.FC = () => {
 
   const stages: PipelineStage[] = [
     'Prospectado',
-    'Primeiro contato',
-    'Respondeu',
-    'Qualificado',
+    'Demo pronta',
     'Demo apresentada',
-    'Proposta enviada',
     'Negociação',
     'Fechado',
     'Perdido',
@@ -57,35 +54,17 @@ export const PipelineView: React.FC = () => {
       dot: 'bg-blue-400',
       text: 'text-blue-400',
     },
-    'Primeiro contato': {
-      border: 'border-sky-500/20',
-      bg: 'bg-sky-500/10',
-      dot: 'bg-sky-400',
-      text: 'text-sky-400',
-    },
-    'Respondeu': {
-      border: 'border-cyan-500/20',
-      bg: 'bg-cyan-500/10',
-      dot: 'bg-cyan-400',
-      text: 'text-cyan-400',
-    },
-    'Qualificado': {
-      border: 'border-indigo-500/20',
-      bg: 'bg-indigo-500/10',
-      dot: 'bg-indigo-400',
-      text: 'text-indigo-400',
+    'Demo pronta': {
+      border: 'border-amber-500/20',
+      bg: 'bg-amber-500/10',
+      dot: 'bg-amber-400',
+      text: 'text-amber-400',
     },
     'Demo apresentada': {
       border: 'border-purple-500/20',
       bg: 'bg-purple-500/10',
       dot: 'bg-purple-400',
       text: 'text-purple-400',
-    },
-    'Proposta enviada': {
-      border: 'border-amber-500/20',
-      bg: 'bg-amber-500/10',
-      dot: 'bg-amber-400',
-      text: 'text-amber-400',
     },
     'Negociação': {
       border: 'border-orange-500/20',
@@ -112,9 +91,13 @@ export const PipelineView: React.FC = () => {
     if (c.pipelineStage && stages.includes(c.pipelineStage)) {
       return c.pipelineStage;
     }
+    // Backward compatibility for legacy stages if encountered
+    const legacy = c.pipelineStage as string;
+    if (legacy === 'Primeiro contato' || legacy === 'Respondeu' || legacy === 'Qualificado') return 'Prospectado';
+    if (legacy === 'Proposta enviada') return 'Negociação';
+
     if (c.status === 'Lead') return 'Prospectado';
-    if (c.status === 'Em negociação') return 'Negociação';
-    if (c.status === 'Proposta enviada') return 'Proposta enviada';
+    if (c.status === 'Em negociação' || c.status === 'Proposta enviada') return 'Negociação';
     if (c.status === 'Perdido' || c.status === 'Cancelado') return 'Perdido';
     if (c.status === 'Cliente ativo' || c.status === 'Cliente recorrente') return 'Fechado';
     return 'Prospectado';
@@ -248,7 +231,7 @@ export const PipelineView: React.FC = () => {
               <div>
                 <h2 className="text-base font-bold text-white tracking-tight">Funil Comercial de Vendas (CRM)</h2>
                 <p className="text-xs text-neutral-400">
-                  Acompanhe e mova leads nas 9 etapas estratégicas de prospecção e fechamento
+                  Acompanhe e mova leads nas 6 etapas estratégicas de prospecção e fechamento
                 </p>
               </div>
             </div>
