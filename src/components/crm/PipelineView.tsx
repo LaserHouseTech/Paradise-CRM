@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PipelineStage, Client, ClientOrigin } from '../../types';
 import { formatCurrency } from '../../lib/formatters';
+import { supabaseSyncService } from '../../services/supabaseSyncService';
 import {
   ChevronRight,
   ChevronLeft,
@@ -40,10 +41,16 @@ export const PipelineView: React.FC = () => {
   } = useApp();
 
   const handleUpdateStage = (clientId: string, stage: PipelineStage) => {
+    const client = data.clients.find((c) => c.id === clientId);
     if (updateClientPipelineStage) {
       updateClientPipelineStage(clientId, stage);
     } else if (updatePipelineStage) {
       updatePipelineStage(clientId, stage);
+    }
+    if (client) {
+      supabaseSyncService.syncClientStage({ ...client, pipelineStage: stage }, stage).catch(() => {});
+      setProposalToast(`"${client.companyName}" movido para "${stage}" e salvo no banco de dados!`);
+      setTimeout(() => setProposalToast(null), 3500);
     }
   };
 
@@ -227,15 +234,19 @@ export const PipelineView: React.FC = () => {
     }
   };
 
-  const handleSaveProposal = (e: React.FormEvent) => {
+  const [isSavingProposal, setIsSavingProposal] = useState(false);
+
+  const handleSaveProposal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proposalClient) return;
 
+    setIsSavingProposal(true);
     const finalVal = parseFloat(manualProposalValue.replace(',', '.')) || 0;
     const proposedServiceNames = selectedServiceIds
       .map((id) => data.services.find((s) => s.id === id)?.name)
       .filter(Boolean) as string[];
 
+    // 1. Update local App state
     updateClient(proposalClient.id, {
       potentialValue: finalVal,
       selectedServiceIds,
@@ -243,8 +254,22 @@ export const PipelineView: React.FC = () => {
       notes: proposalNotes,
     });
 
-    setProposalToast(`Valor da proposta de "${proposalClient.companyName}" atualizado para ${formatCurrency(finalVal)}!`);
-    setTimeout(() => setProposalToast(null), 3500);
+    // 2. Persist immediately to Supabase database (proposals, leads and clients)
+    try {
+      await supabaseSyncService.syncProposal(
+        proposalClient,
+        finalVal,
+        proposedServiceNames,
+        selectedServiceIds,
+        proposalNotes
+      );
+    } catch (err) {
+      console.warn('Erro ao salvar proposta no Supabase:', err);
+    }
+
+    setProposalToast(`Valor da proposta de "${proposalClient.companyName}" atualizado no banco de dados para ${formatCurrency(finalVal)}!`);
+    setTimeout(() => setProposalToast(null), 4000);
+    setIsSavingProposal(false);
     setProposalClient(null);
   };
 
@@ -1263,10 +1288,20 @@ export const PipelineView: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center gap-1.5"
+                disabled={isSavingProposal}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-semibold shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
               >
-                <Check className="w-4 h-4" />
-                <span>Salvar Proposta Comercial ({formatCurrency(parseFloat(manualProposalValue.replace(',', '.')) || 0)})</span>
+                {isSavingProposal ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Salvando no banco de dados...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Salvar Proposta Comercial ({formatCurrency(parseFloat(manualProposalValue.replace(',', '.')) || 0)})</span>
+                  </>
+                )}
               </button>
             </div>
           </form>

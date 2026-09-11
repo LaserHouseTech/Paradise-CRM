@@ -596,47 +596,47 @@ export const ClientsView: React.FC = () => {
           onClose={() => setSelectedClientId(null)}
           title={selectedClient.companyName}
           subtitle={`Dossiê Financeiro & Operacional • Responsável: ${selectedClient.contactName}`}
-          maxWidth="2xl"
+          maxWidth="3xl"
         >
           <div className="space-y-6">
             {/* Client Profile Header with Avatar & Edit Action */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-              <div className="flex items-center gap-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="flex items-center gap-3.5 min-w-0">
                 {selectedClient.avatarUrl ? (
                   <img
                     src={selectedClient.avatarUrl}
                     alt={selectedClient.companyName}
-                    className="w-14 h-14 rounded-full object-cover ring-2 ring-white/10 shadow-md shrink-0"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover ring-2 ring-white/10 shadow-md shrink-0"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-md">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/10 flex items-center justify-center text-white font-bold text-lg sm:text-xl shrink-0 shadow-md">
                     {selectedClient.companyName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-bold text-white">{selectedClient.companyName}</h3>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-neutral-300">
+                    <h3 className="text-sm sm:text-base font-bold text-white truncate">{selectedClient.companyName}</h3>
+                    <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 shrink-0">
                       {selectedClient.city}/{selectedClient.state}
                     </span>
                   </div>
-                  <p className="text-xs text-neutral-400 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 truncate">
                     Responsável: <strong className="text-neutral-200">{selectedClient.contactName}</strong> • {selectedClient.status} • Funil: <strong className="text-blue-400 font-medium">{selectedClient.pipelineStage || 'Prospectado'}</strong>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
                 <button
                   onClick={() => handleOpenEditClient(selectedClient)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/30 transition text-xs font-semibold shadow-sm"
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/30 transition text-xs font-semibold shadow-sm"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>Editar Cadastro & Proposta</span>
                 </button>
                 <button
                   onClick={() => handleOpenDeleteClient(selectedClient)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 transition text-xs font-semibold shadow-sm"
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 transition text-xs font-semibold shadow-sm"
                   title="Apagar cliente e tudo relacionado"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -646,43 +646,43 @@ export const ClientsView: React.FC = () => {
             </div>
 
             {/* Quick KPI Header for Client */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
-              <div>
-                <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Total Já Pago</span>
-                <span className="text-sm font-bold font-mono text-emerald-400">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-semibold text-neutral-400 block truncate">Total Já Pago</span>
+                <span className="text-xs sm:text-sm font-bold font-mono text-emerald-400 block truncate">
                   {formatCurrency(totalPaid)}
                 </span>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Valores em Aberto</span>
-                <span className="text-sm font-bold font-mono text-blue-400">
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-semibold text-neutral-400 block truncate">Valores em Aberto</span>
+                <span className="text-xs sm:text-sm font-bold font-mono text-blue-400 block truncate">
                   {formatCurrency(totalOpen)}
                 </span>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-semibold text-neutral-400 block">MRR Gerado</span>
-                <span className="text-sm font-bold font-mono text-purple-400">
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-semibold text-neutral-400 block truncate">MRR Gerado</span>
+                <span className="text-xs sm:text-sm font-bold font-mono text-purple-400 block truncate">
                   {formatCurrency(activeMrr)}/mês
                 </span>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Plano de Cuidado</span>
-                <span className={`text-xs font-medium ${selectedClient.isRecurring ? 'text-emerald-400' : 'text-neutral-400'}`}>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-semibold text-neutral-400 block truncate">Plano de Cuidado</span>
+                <span className={`text-xs font-medium block truncate ${selectedClient.isRecurring ? 'text-emerald-400' : 'text-neutral-400'}`}>
                   {selectedClient.isRecurring ? 'Ativo (Recorrente)' : 'Sem plano'}
                 </span>
               </div>
             </div>
 
             {/* Proposta Comercial & Serviços Negociados */}
-            <div className="p-4 rounded-xl bg-blue-500/[0.04] border border-blue-500/20 space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-blue-500/[0.04] border border-blue-500/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-blue-400" />
+                  <DollarSign className="w-4 h-4 text-blue-400 shrink-0" />
                   <span className="text-xs font-bold text-white uppercase tracking-wider">
                     Proposta Comercial & Serviços Inclusos
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
                   <span className="text-xs text-neutral-400">Valor da Proposta:</span>
                   <span className="font-mono text-base font-bold text-emerald-400">
                     {formatCurrency(
@@ -693,7 +693,7 @@ export const ClientsView: React.FC = () => {
                   </span>
                   <button
                     onClick={() => handleOpenEditClient(selectedClient)}
-                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition"
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition shrink-0"
                     title="Editar serviços e valor da proposta"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
@@ -732,36 +732,36 @@ export const ClientsView: React.FC = () => {
             </div>
 
             {/* Client Info Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
               <div className="space-y-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
                 <h4 className="font-semibold text-white mb-2 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-neutral-400" />
+                  <Building2 className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                   <span>Dados Cadastrais</span>
                 </h4>
-                <p><span className="text-neutral-500">Documento (CNPJ/CPF):</span> {selectedClient.document || 'Não informado'}</p>
-                <p><span className="text-neutral-500">Telefone / WhatsApp:</span> {selectedClient.phone || '-'}</p>
-                <p><span className="text-neutral-500">E-mail:</span> {selectedClient.email || '-'}</p>
-                <p><span className="text-neutral-500">Endereço:</span> {selectedClient.address || '-'}</p>
-                <p><span className="text-neutral-500">Localização:</span> {selectedClient.city}/{selectedClient.state}</p>
+                <p className="break-words"><span className="text-neutral-500">Documento (CNPJ/CPF):</span> {selectedClient.document || 'Não informado'}</p>
+                <p className="break-words"><span className="text-neutral-500">Telefone / WhatsApp:</span> {selectedClient.phone || '-'}</p>
+                <p className="break-all"><span className="text-neutral-500">E-mail:</span> {selectedClient.email || '-'}</p>
+                <p className="break-words"><span className="text-neutral-500">Endereço:</span> {selectedClient.address || '-'}</p>
+                <p className="break-words"><span className="text-neutral-500">Localização:</span> {selectedClient.city}/{selectedClient.state}</p>
               </div>
 
               <div className="space-y-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
                 <h4 className="font-semibold text-white mb-2 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-neutral-400" />
+                  <Globe className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                   <span>Presença Digital & Origem</span>
                 </h4>
-                <p><span className="text-neutral-500">Origem do Cliente:</span> {selectedClient.origin}</p>
-                <p><span className="text-neutral-500">Data de Cadastro:</span> {formatDate(selectedClient.createdAt)}</p>
-                <p><span className="text-neutral-500">Instagram:</span> {selectedClient.instagram || '-'}</p>
-                <p><span className="text-neutral-500">Site Atual:</span> {selectedClient.currentWebsite || '-'}</p>
+                <p className="break-words"><span className="text-neutral-500">Origem do Cliente:</span> {selectedClient.origin}</p>
+                <p className="break-words"><span className="text-neutral-500">Data de Cadastro:</span> {formatDate(selectedClient.createdAt)}</p>
+                <p className="break-all"><span className="text-neutral-500">Instagram:</span> {selectedClient.instagram || '-'}</p>
+                <p className="break-all"><span className="text-neutral-500">Site Atual:</span> {selectedClient.currentWebsite || '-'}</p>
                 {selectedClient.notes && (
-                  <p><span className="text-neutral-500">Observações:</span> {selectedClient.notes}</p>
+                  <p className="break-words"><span className="text-neutral-500">Observações:</span> {selectedClient.notes}</p>
                 )}
               </div>
             </div>
 
             {/* SECTION 24: SERVIÇOS EXTRAS BUTTON */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
               <div>
                 <p className="text-xs font-semibold text-white">Vendas Adicionais & Serviços Extras</p>
                 <p className="text-[11px] text-neutral-400">
@@ -770,7 +770,7 @@ export const ClientsView: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsExtraServiceModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium flex items-center gap-1.5 transition shrink-0"
+                className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition shrink-0"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Adicionar Serviço Extra</span>
@@ -790,16 +790,16 @@ export const ClientsView: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {clientSubscriptions.map((sub) => (
-                    <div key={sub.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-white">{sub.planName}</p>
-                        <p className="text-neutral-400 text-[11px]">
+                    <div key={sub.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white truncate">{sub.planName}</p>
+                        <p className="text-neutral-400 text-[11px] truncate">
                           Início: {formatDate(sub.startDate)} • Vencimento: todo dia {sub.dueDay} • Próx: {formatDate(sub.nextDueDate)}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="flex items-center justify-between sm:justify-end sm:text-right gap-3 shrink-0">
                         <span className="font-mono font-bold text-purple-400">{formatCurrency(sub.monthlyValue)}/mês</span>
-                        <span className={`block text-[10px] font-medium ${sub.status === 'Ativo' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${sub.status === 'Ativo' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                           {sub.status}
                         </span>
                       </div>
@@ -822,16 +822,16 @@ export const ClientsView: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {clientProjects.map((p) => (
-                    <div key={p.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-white">{p.name}</p>
-                        <p className="text-neutral-400 text-[11px]">
+                    <div key={p.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white truncate">{p.name}</p>
+                        <p className="text-neutral-400 text-[11px] truncate">
                           {p.serviceName} • Entrega: {formatDate(p.deliveryDate)}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="flex items-center justify-between sm:justify-end sm:text-right gap-3 shrink-0">
                         <span className="font-mono font-bold text-white">{formatCurrency(p.contractValue)}</span>
-                        <span className="block text-[10px] text-neutral-400">
+                        <span className="text-[10px] text-neutral-400">
                           Pago: {formatCurrency(p.paidAmount || 0)}
                         </span>
                       </div>
@@ -849,17 +849,17 @@ export const ClientsView: React.FC = () => {
               </h4>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {clientReceivables.map((r) => (
-                  <div key={r.id} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-medium text-white">{r.description}</p>
-                      <p className="text-neutral-500 text-[11px]">
+                  <div key={r.id} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
+                    <div className="min-w-0">
+                      <p className="font-medium text-white truncate">{r.description}</p>
+                      <p className="text-neutral-500 text-[11px] truncate">
                         Vencimento: {formatDate(r.dueDate)} • {r.paymentMethod}
                         {r.paymentDate && ` • Pago em ${formatDate(r.paymentDate)}`}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center justify-between sm:justify-end sm:text-right gap-3 shrink-0">
                       <span className="font-mono font-semibold text-white">{formatCurrency(r.grossAmount)}</span>
-                      <span className={`block text-[10px] ${r.status === 'Pago' ? 'text-emerald-400' : r.status === 'Vencido' ? 'text-red-400' : 'text-amber-400'}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${r.status === 'Pago' ? 'text-emerald-400 bg-emerald-500/10' : r.status === 'Vencido' ? 'text-red-400 bg-red-500/10' : 'text-amber-400 bg-amber-500/10'}`}>
                         {r.status}
                       </span>
                     </div>
@@ -877,6 +877,7 @@ export const ClientsView: React.FC = () => {
         onClose={() => setIsNewClientModalOpen(false)}
         title="Cadastrar Novo Cliente"
         subtitle="Adicione uma nova clínica ou empresa ao CRM Paradiso"
+        maxWidth="2xl"
       >
         <form onSubmit={handleSaveNewClient} className="space-y-4">
           {/* Avatar / Foto de Perfil */}
@@ -884,7 +885,7 @@ export const ClientsView: React.FC = () => {
             <label className="block text-xs font-semibold text-white">
               Foto de Perfil / Logotipo do Cliente
             </label>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
               <div className="relative shrink-0">
                 {formData.avatarUrl ? (
                   <img
@@ -910,8 +911,8 @@ export const ClientsView: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2">
+              <div className="flex-1 w-full space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="file"
                     ref={newClientFileInputRef}
@@ -936,7 +937,7 @@ export const ClientsView: React.FC = () => {
                     placeholder="Ou cole a URL da foto..."
                     value={formData.avatarUrl.startsWith('data:') ? '' : formData.avatarUrl}
                     onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                    className="w-full px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
                   />
                 </div>
               </div>
@@ -945,7 +946,7 @@ export const ClientsView: React.FC = () => {
             {/* Presets */}
             <div>
               <span className="text-[10px] text-neutral-400 block mb-1.5 font-medium">Ou escolha um avatar sugerido:</span>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
                 {PRESET_AVATARS.map((preset, idx) => (
                   <button
                     key={idx}
@@ -966,7 +967,7 @@ export const ClientsView: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">Nome da Clínica / Empresa</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">Nome da Clínica / Empresa *</label>
             <input
               type="text"
               placeholder="Ex: Instituto Odontológico Sorrir"
@@ -977,9 +978,9 @@ export const ClientsView: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">Nome do Responsável / Médico</label>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">Nome do Responsável / Médico *</label>
               <input
                 type="text"
                 placeholder="Ex: Dr. Marcelo Ramos"
@@ -996,12 +997,12 @@ export const ClientsView: React.FC = () => {
                 placeholder="00.000.000/0000-00"
                 value={formData.document}
                 onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30 font-mono"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">Telefone / WhatsApp</label>
               <input
@@ -1024,7 +1025,7 @@ export const ClientsView: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">Cidade</label>
               <input
@@ -1104,7 +1105,7 @@ export const ClientsView: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 rounded-xl bg-white text-neutral-950 text-sm font-semibold hover:bg-neutral-200 transition"
+            className="w-full py-2.5 rounded-xl bg-white text-neutral-950 text-sm font-semibold hover:bg-neutral-200 transition active:scale-[0.99] cursor-pointer"
           >
             Cadastrar Cliente
           </button>
@@ -1121,7 +1122,7 @@ export const ClientsView: React.FC = () => {
           }}
           title={`Editar Cliente: ${editingClient.companyName}`}
           subtitle="Atualize os dados cadastrais, contato, endereço e foto de perfil"
-          maxWidth="2xl"
+          maxWidth="3xl"
         >
           <form onSubmit={handleSaveEditClient} className="space-y-4">
             {/* Avatar / Foto de Perfil */}
@@ -1129,7 +1130,7 @@ export const ClientsView: React.FC = () => {
               <label className="block text-xs font-semibold text-white">
                 Foto de Perfil / Logotipo do Cliente
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                 <div className="relative shrink-0">
                   {editFormData.avatarUrl ? (
                     <img
@@ -1155,8 +1156,8 @@ export const ClientsView: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 w-full space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="file"
                       ref={editClientFileInputRef}
@@ -1181,7 +1182,7 @@ export const ClientsView: React.FC = () => {
                       placeholder="Ou cole a URL da foto..."
                       value={editFormData.avatarUrl.startsWith('data:') ? '' : editFormData.avatarUrl}
                       onChange={(e) => setEditFormData({ ...editFormData, avatarUrl: e.target.value })}
-                      className="w-full px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
                     />
                   </div>
                 </div>
@@ -1190,7 +1191,7 @@ export const ClientsView: React.FC = () => {
               {/* Presets */}
               <div>
                 <span className="text-[10px] text-neutral-400 block mb-1.5 font-medium">Ou escolha um avatar sugerido:</span>
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
                   {PRESET_AVATARS.map((preset, idx) => (
                     <button
                       key={idx}
@@ -1213,7 +1214,7 @@ export const ClientsView: React.FC = () => {
             {/* Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">Nome da Clínica / Empresa</label>
+                <label className="block text-xs font-medium text-neutral-400 mb-1">Nome da Clínica / Empresa *</label>
                 <input
                   type="text"
                   value={editFormData.companyName}
@@ -1224,7 +1225,7 @@ export const ClientsView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">Nome do Responsável / Médico</label>
+                <label className="block text-xs font-medium text-neutral-400 mb-1">Nome do Responsável / Médico *</label>
                 <input
                   type="text"
                   value={editFormData.contactName}
@@ -1265,8 +1266,8 @@ export const ClientsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-5">
                 <label className="block text-xs font-medium text-neutral-400 mb-1">Cidade</label>
                 <input
                   type="text"
@@ -1275,7 +1276,7 @@ export const ClientsView: React.FC = () => {
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
                 />
               </div>
-              <div>
+              <div className="sm:col-span-3">
                 <label className="block text-xs font-medium text-neutral-400 mb-1">Estado (UF)</label>
                 <input
                   type="text"
@@ -1284,7 +1285,7 @@ export const ClientsView: React.FC = () => {
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
                 />
               </div>
-              <div>
+              <div className="sm:col-span-4">
                 <label className="block text-xs font-medium text-neutral-400 mb-1">Endereço Completo</label>
                 <input
                   type="text"
@@ -1296,7 +1297,7 @@ export const ClientsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-1">Status</label>
                 <select
@@ -1353,18 +1354,21 @@ export const ClientsView: React.FC = () => {
                   <option value="Outros" className="bg-neutral-900 text-white">Outros</option>
                 </select>
               </div>
+            </div>
 
-              <div className="flex items-center pt-5">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-neutral-200">
-                  <input
-                    type="checkbox"
-                    checked={editFormData.isRecurring}
-                    onChange={(e) => setEditFormData({ ...editFormData, isRecurring: e.target.checked })}
-                    className="rounded bg-white/10 border-white/20 text-blue-600 focus:ring-0 w-4 h-4"
-                  />
-                  <span>Plano de Cuidado Ativo</span>
-                </label>
-              </div>
+            <div className="pt-1">
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs text-neutral-200 p-2.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition">
+                <input
+                  type="checkbox"
+                  checked={editFormData.isRecurring}
+                  onChange={(e) => setEditFormData({ ...editFormData, isRecurring: e.target.checked })}
+                  className="rounded bg-white/10 border-white/20 text-blue-600 focus:ring-0 w-4 h-4"
+                />
+                <div>
+                  <span className="font-semibold text-white block">Plano de Cuidado Digital Ativo</span>
+                  <span className="text-[11px] text-neutral-400 block">Marca o cliente como assinante recorrente da agência</span>
+                </div>
+              </label>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1391,19 +1395,19 @@ export const ClientsView: React.FC = () => {
             </div>
 
             {/* SELEÇÃO DE SERVIÇOS & VALOR DA PROPOSTA */}
-            <div className="p-4 rounded-xl bg-[#181920] border border-blue-500/20 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#181920] border border-blue-500/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
                   <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-blue-400" />
+                    <DollarSign className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <span>Serviços Inclusos na Proposta Comercial</span>
                   </label>
                   <p className="text-[11px] text-neutral-400">
                     Selecione os serviços para compor o valor base da proposta deste cliente
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-400">Valor Final da Proposta:</span>
+                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                  <span className="text-xs text-neutral-400 whitespace-nowrap">Valor Final:</span>
                   <div className="relative w-36">
                     <span className="absolute left-2.5 top-2 text-xs font-mono text-neutral-400">R$</span>
                     <input
@@ -1431,7 +1435,7 @@ export const ClientsView: React.FC = () => {
                           : 'bg-white/[0.02] border-white/5 text-neutral-400 hover:border-white/15'
                       }`}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
                         <div
                           className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center border transition shrink-0 ${
                             isChecked
@@ -1441,9 +1445,9 @@ export const ClientsView: React.FC = () => {
                         >
                           {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
-                        <div>
-                          <p className="text-xs font-medium leading-tight text-neutral-200">{srv.name}</p>
-                          <p className="text-[10px] text-neutral-500 line-clamp-1">{srv.category}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium leading-tight text-neutral-200 truncate">{srv.name}</p>
+                          <p className="text-[10px] text-neutral-500 truncate">{srv.category}</p>
                         </div>
                       </div>
                       <div className="text-right shrink-0 font-mono text-xs">
@@ -1462,7 +1466,7 @@ export const ClientsView: React.FC = () => {
               </div>
 
               {editFormData.selectedServiceIds.length > 0 && (
-                <div className="flex items-center justify-between text-[11px] text-neutral-400 pt-1 border-t border-white/5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-[11px] text-neutral-400 pt-1.5 border-t border-white/5">
                   <span>{editFormData.selectedServiceIds.length} serviço(s) selecionado(s)</span>
                   <button
                     type="button"
@@ -1473,7 +1477,7 @@ export const ClientsView: React.FC = () => {
                       }, 0);
                       setEditFormData({ ...editFormData, potentialValue: sum });
                     }}
-                    className="text-blue-400 hover:text-blue-300 transition text-[11px] underline"
+                    className="text-blue-400 hover:text-blue-300 transition text-[11px] underline text-left sm:text-right"
                   >
                     Recalcular valor exato pela soma do catálogo
                   </button>
@@ -1492,20 +1496,20 @@ export const ClientsView: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setIsEditClientModalOpen(false);
                   setEditingClient(null);
                 }}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition text-center"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-white text-neutral-950 text-xs font-bold hover:bg-neutral-200 transition shadow"
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-white text-neutral-950 text-xs font-bold hover:bg-neutral-200 transition shadow active:scale-[0.99] cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Salvar Alterações</span>
@@ -1535,7 +1539,7 @@ export const ClientsView: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">Valor do Serviço (R$)</label>
               <input
@@ -1710,14 +1714,14 @@ export const ClientsView: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3 border-t border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => {
                   setIsDeleteModalOpen(false);
                   setClientToDelete(null);
                 }}
-                className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-semibold transition"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-semibold transition text-center"
               >
                 Cancelar
               </button>
@@ -1725,9 +1729,9 @@ export const ClientsView: React.FC = () => {
                 id="confirm-delete-client-btn"
                 type="button"
                 onClick={handleConfirmDelete}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition shadow-lg shadow-red-600/20 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition shadow-lg shadow-red-600/20 cursor-pointer text-center"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 shrink-0" />
                 <span>Sim, Apagar Cliente e Tudo Vinculado</span>
               </button>
             </div>

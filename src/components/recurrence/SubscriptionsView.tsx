@@ -60,7 +60,8 @@ export const SubscriptionsView: React.FC = () => {
 
   const handleCreateSubscription = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subClientId || !subMonthlyValue) return;
+    const chosenClientId = subClientId || data.clients[0]?.id;
+    if (!chosenClientId || !subMonthlyValue) return;
 
     const dueDayNum = parseInt(subDueDay) || 10;
     const now = new Date();
@@ -69,7 +70,7 @@ export const SubscriptionsView: React.FC = () => {
       .split('T')[0];
 
     addSubscription({
-      clientId: subClientId,
+      clientId: chosenClientId,
       planName: subPlanName,
       monthlyValue: parseFloat(subMonthlyValue),
       dueDay: dueDayNum,

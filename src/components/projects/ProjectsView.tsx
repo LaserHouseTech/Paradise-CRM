@@ -58,11 +58,12 @@ export const ProjectsView: React.FC = () => {
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projName || !projClientId || !projValue) return;
+    const chosenClientId = projClientId || data.clients[0]?.id;
+    if (!projName || !chosenClientId || !projValue) return;
 
     addProject({
       name: projName,
-      clientId: projClientId,
+      clientId: chosenClientId,
       serviceName: projService,
       contractValue: parseFloat(projValue) || 697,
       paidAmount: 0,

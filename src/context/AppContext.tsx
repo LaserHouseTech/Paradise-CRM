@@ -365,23 +365,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const forceSyncSupabase = async () => {
     setSupabaseSyncState('syncing');
-    setSupabaseSyncMessage('Sincronizando com o Supabase...');
+    setSupabaseSyncMessage('Enviando dados para o Supabase...');
     try {
-      // First pull from Supabase
-      isSyncingFromRemote.current = true;
-      const pullRes = await supabaseSyncService.pullDataFromSupabase();
-      let currentData = data;
-      if (pullRes.success && pullRes.data) {
-        currentData = pullRes.data;
-        setData(currentData);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
-        } catch {}
-      }
-      isSyncingFromRemote.current = false;
-
-      // Push latest state to Supabase
-      const pushRes = await supabaseSyncService.pushAllDataToSupabase(currentData);
+      // Push latest local state to Supabase directly
+      const pushRes = await supabaseSyncService.pushAllDataToSupabase(data);
       if (pushRes.success) {
         setSupabaseSyncState('synced');
         setLastSupabaseSyncTime(new Date());
@@ -391,7 +378,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSupabaseSyncMessage(pushRes.message);
       }
     } catch (err: any) {
-      isSyncingFromRemote.current = false;
       setSupabaseSyncState('error');
       setSupabaseSyncMessage(err.message || 'Erro ao sincronizar com o Supabase');
     }
@@ -512,6 +498,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    const updatedClient = client ? { ...client, pipelineStage: stage, status: newStatus } : null;
+
     setData((prev) => ({
       ...prev,
       clients: prev.clients.map((c) =>
@@ -519,6 +507,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ),
     }));
     addAuditLog('Pipeline Atualizado', `Lead ${client?.companyName || clientId} movido para "${stage}".`, 'Client', clientId);
+
+    // Save stage immediately to Supabase
+    if (updatedClient) {
+      supabaseSyncService.syncClientStage(updatedClient, stage).catch((err) => {
+        console.warn('Erro ao sincronizar estágio do pipeline no Supabase:', err);
+      });
+    }
   };
 
   // PROJECTS

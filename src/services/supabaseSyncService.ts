@@ -8,6 +8,7 @@ import {
   Receivable,
   Payable,
   FinancialAccount,
+  PipelineStage,
 } from '../types';
 
 export interface SyncResult {
@@ -76,14 +77,15 @@ export const supabaseSyncService = {
           current_website: c.currentWebsite,
           is_recurring: c.isRecurring,
           pipeline_stage: c.pipelineStage || (c.status === 'Cliente ativo' ? 'Fechado' : 'Prospectado'),
+          potential_value: c.potentialValue !== undefined ? c.potentialValue : null,
           created_at: c.createdAt,
           updated_at: new Date().toISOString(),
         }));
 
         let { error } = await supabase.from('clients').upsert(payload);
         if (error) {
-          // Fallback if pipeline_stage column is not in remote database yet
-          const fallbackPayload = payload.map(({ pipeline_stage, ...rest }) => rest);
+          // Fallback if potential_value or pipeline_stage columns are not in remote database yet
+          const fallbackPayload = payload.map(({ potential_value, pipeline_stage, ...rest }) => rest);
           const fallbackRes = await supabase.from('clients').upsert(fallbackPayload);
           error = fallbackRes.error;
         }
@@ -247,7 +249,52 @@ export const supabaseSyncService = {
       tablesFailed.push('leads');
     }
 
-    // 7. Sync tasks
+    // 7. Sync commercial proposals
+    try {
+      const proposalsPayload = (data.clients || [])
+        .filter((c: Client) =>
+          (c.potentialValue !== undefined && c.potentialValue > 0) ||
+          (c.proposedServices && c.proposedServices.length > 0) ||
+          c.pipelineStage === 'Negociação' ||
+          c.pipelineStage === 'Demo apresentada' ||
+          c.pipelineStage === 'Demo pronta' ||
+          c.pipelineStage === 'Prospectado' ||
+          c.status === 'Proposta enviada' ||
+          c.status === 'Em negociação' ||
+          c.status === 'Lead'
+        )
+        .map((c: Client) => ({
+          id: 'prop-' + c.id,
+          client_id: c.id,
+          title: `Proposta Comercial • ${c.companyName}`,
+          total_value: Number(c.potentialValue) || Number(c.totalSpent) || 0,
+          status:
+            c.pipelineStage === 'Fechado'
+              ? 'Aprovada'
+              : c.pipelineStage === 'Perdido'
+              ? 'Recusada'
+              : c.pipelineStage === 'Negociação' || c.status === 'Proposta enviada'
+              ? 'Enviada'
+              : 'Em elaboração',
+          items: c.proposedServices || [],
+          notes: c.notes || null,
+          created_at: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+        }));
+
+      if (proposalsPayload.length > 0) {
+        const { error: propErr } = await supabase.from('proposals').upsert(proposalsPayload);
+        if (!propErr) {
+          tablesSynced.push(`proposals (${proposalsPayload.length})`);
+          hasAnySuccess = true;
+        } else {
+          tablesFailed.push('proposals');
+        }
+      }
+    } catch {
+      tablesFailed.push('proposals');
+    }
+
+    // 8. Sync tasks
     try {
       const tasksPayload = (data.projects || []).map((p: Project) => {
         const client = data.clients.find((c) => c.id === p.clientId);
@@ -363,6 +410,8 @@ export const supabaseSyncService = {
         accountsRes,
         settingsRes,
         backupRes,
+        proposalsRes,
+        leadsRes,
       ] = await Promise.all([
         supabase.from('clients').select('*').order('created_at', { ascending: false }),
         supabase.from('contracts').select('*').order('created_at', { ascending: false }),
@@ -371,6 +420,8 @@ export const supabaseSyncService = {
         supabase.from('financial_accounts').select('*'),
         supabase.from('company_settings').select('*').limit(1),
         supabase.from('app_state_backup').select('data').eq('id', 'latest').maybeSingle(),
+        supabase.from('proposals').select('*'),
+        supabase.from('leads').select('*'),
       ]);
 
       const clientsRows = clientsRes.data || [];
@@ -380,6 +431,8 @@ export const supabaseSyncService = {
       const accountsRows = accountsRes.data || [];
       const settingsRows = settingsRes.data || [];
       const backupData = backupRes.data?.data as Partial<SystemData> | undefined;
+      const proposalsRows = proposalsRes.data || [];
+      const leadsRows = leadsRes.data || [];
 
       const hasRelationalData =
         clientsRows.length > 0 ||
@@ -445,15 +498,60 @@ export const supabaseSyncService = {
             ? 'Perdido'
             : 'Prospectado';
 
+        // Resolve proposal value, proposed services and selected service IDs
+        const clientProposal = proposalsRows.find(
+          (p: any) => p.client_id === c.id || p.id === 'prop-' + c.id
+        );
+        const clientLead = leadsRows.find(
+          (l: any) => l.id === 'lead-' + c.id || l.id === c.id || l.company === c.company_name
+        );
+        const backupClient = backupData?.clients?.find((bc: any) => bc.id === c.id);
+
+        // Stage resolution with multi-level fallback:
+        // 1. Direct column in `clients` (if exists in remote DB)
+        // 2. Status in `leads` table (stores pipeline stage: 'Demo pronta', 'Negociação', etc.)
+        // 3. pipelineStage in `app_state_backup`
+        // 4. Fallback from c.status
         let resolvedStage = c.pipeline_stage;
         if (!resolvedStage || !validStages.includes(resolvedStage)) {
-          if (resolvedStage === 'Primeiro contato' || resolvedStage === 'Respondeu' || resolvedStage === 'Qualificado') {
+          if (clientLead?.status && validStages.includes(clientLead.status)) {
+            resolvedStage = clientLead.status;
+          } else if (backupClient?.pipelineStage && validStages.includes(backupClient.pipelineStage)) {
+            resolvedStage = backupClient.pipelineStage;
+          } else if (resolvedStage === 'Primeiro contato' || resolvedStage === 'Respondeu' || resolvedStage === 'Qualificado') {
             resolvedStage = 'Prospectado';
           } else if (resolvedStage === 'Proposta enviada') {
             resolvedStage = 'Negociação';
           } else {
             resolvedStage = defaultStage;
           }
+        }
+
+        let resolvedPotentialValue: number | undefined = undefined;
+        if (c.potential_value !== undefined && c.potential_value !== null && !isNaN(Number(c.potential_value))) {
+          resolvedPotentialValue = Number(c.potential_value);
+        } else if (clientProposal?.total_value !== undefined && clientProposal.total_value !== null && !isNaN(Number(clientProposal.total_value))) {
+          resolvedPotentialValue = Number(clientProposal.total_value);
+        } else if (clientLead?.value !== undefined && Number(clientLead.value) > 0) {
+          resolvedPotentialValue = Number(clientLead.value);
+        } else if (backupClient?.potentialValue !== undefined && backupClient.potentialValue !== null) {
+          resolvedPotentialValue = Number(backupClient.potentialValue);
+        }
+
+        let resolvedProposedServices: string[] = [];
+        if (Array.isArray(c.proposed_services) && c.proposed_services.length > 0) {
+          resolvedProposedServices = c.proposed_services;
+        } else if (Array.isArray(clientProposal?.items) && clientProposal.items.length > 0) {
+          resolvedProposedServices = clientProposal.items;
+        } else if (Array.isArray(backupClient?.proposedServices) && backupClient.proposedServices.length > 0) {
+          resolvedProposedServices = backupClient.proposedServices;
+        }
+
+        let resolvedSelectedServiceIds: string[] = [];
+        if (Array.isArray(c.selected_service_ids) && c.selected_service_ids.length > 0) {
+          resolvedSelectedServiceIds = c.selected_service_ids;
+        } else if (Array.isArray(backupClient?.selectedServiceIds) && backupClient.selectedServiceIds.length > 0) {
+          resolvedSelectedServiceIds = backupClient.selectedServiceIds;
         }
 
         return {
@@ -469,6 +567,9 @@ export const supabaseSyncService = {
           address: c.address || '',
           status: (c.status as any) || 'Cliente ativo',
           pipelineStage: resolvedStage as any,
+          potentialValue: resolvedPotentialValue,
+          proposedServices: resolvedProposedServices,
+          selectedServiceIds: resolvedSelectedServiceIds,
           origin: (c.origin as any) || 'Prospecção ativa',
           notes: c.notes || '',
           avatarUrl: c.avatar_url || undefined,
@@ -490,40 +591,52 @@ export const supabaseSyncService = {
           (Number(ct.monthly_value) > 0 && !ct.id.startsWith('prj-'));
 
         if (isSub) {
+          const backupSub = backupData?.subscriptions?.find((bs: any) => bs.id === ct.id);
           mappedSubscriptions.push({
             id: ct.id,
-            clientId: ct.client_id,
-            planName: ct.title || 'Plano de Cuidado Digital',
-            monthlyValue: Number(ct.monthly_value) || 197,
+            clientId: ct.client_id || backupSub?.clientId || '',
+            planName: ct.title || backupSub?.planName || 'Plano de Cuidado Digital',
+            monthlyValue: Number(ct.monthly_value) || backupSub?.monthlyValue || 197,
             startDate:
-              ct.start_date || (ct.created_at ? ct.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-            dueDay: 10,
-            nextDueDate: ct.end_date || '',
-            status: (ct.status as any) || 'Ativo',
-            minimumTermMonths: 12,
-            notes: ct.notes || '',
+              ct.start_date || backupSub?.startDate || (ct.created_at ? ct.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+            dueDay: backupSub?.dueDay || 10,
+            nextDueDate: ct.end_date || backupSub?.nextDueDate || '',
+            status: (ct.status as any) || backupSub?.status || 'Ativo',
+            minimumTermMonths: backupSub?.minimumTermMonths || 12,
+            notes: ct.notes || backupSub?.notes || '',
           });
         } else {
+          const backupPrj = backupData?.projects?.find((bp: any) => bp.id === ct.id);
           mappedProjects.push({
             id: ct.id,
-            name: ct.title || 'Projeto Web',
-            clientId: ct.client_id,
-            serviceId: 'srv-2',
+            name: ct.title || backupPrj?.name || 'Projeto Web',
+            clientId: ct.client_id || backupPrj?.clientId || '',
+            serviceId: backupPrj?.serviceId || 'srv-2',
             serviceName:
-              Array.isArray(ct.services) && ct.services[0] ? ct.services[0] : 'Desenvolvimento de Site',
-            contractValue: Number(ct.total_value) || 0,
+              Array.isArray(ct.services) && ct.services[0] ? ct.services[0] : (backupPrj?.serviceName || 'Desenvolvimento de Site'),
+            contractValue: Number(ct.total_value) || backupPrj?.contractValue || 0,
             contractDate:
-              ct.start_date || (ct.created_at ? ct.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-            deliveryDate: ct.end_date || '',
-            status: (ct.status as any) || 'Em desenvolvimento',
-            paymentMethod: ct.payment_method || 'InfinitePay',
-            installments: 3,
-            paidAmount: 0,
-            hasCarePlan: true,
-            notes: ct.notes || '',
+              ct.start_date || backupPrj?.contractDate || (ct.created_at ? ct.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+            deliveryDate: ct.end_date || backupPrj?.deliveryDate || '',
+            status: (ct.status as any) || backupPrj?.status || 'Em desenvolvimento',
+            paymentMethod: ct.payment_method || backupPrj?.paymentMethod || 'InfinitePay',
+            installments: backupPrj?.installments || 3,
+            paidAmount: backupPrj?.paidAmount || 0,
+            hasCarePlan: backupPrj?.hasCarePlan ?? true,
+            notes: ct.notes || backupPrj?.notes || '',
           });
         }
       });
+
+      const finalProjects =
+        mappedProjects.length > 0
+          ? mappedProjects
+          : (backupData?.projects && backupData.projects.length > 0 ? backupData.projects : []);
+
+      const finalSubscriptions =
+        mappedSubscriptions.length > 0
+          ? mappedSubscriptions
+          : (backupData?.subscriptions && backupData.subscriptions.length > 0 ? backupData.subscriptions : []);
 
       // Map Expenses -> Payables
       const mappedPayables: Payable[] = expensesRows.map((p: any) => ({
@@ -542,19 +655,32 @@ export const supabaseSyncService = {
         createdAt: p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       }));
 
+      const finalPayables =
+        mappedPayables.length > 0
+          ? mappedPayables
+          : (backupData?.payables && backupData.payables.length > 0 ? backupData.payables : []);
+
+      const finalReceivables =
+        mappedReceivables.length > 0
+          ? mappedReceivables
+          : (backupData?.receivables && backupData.receivables.length > 0 ? backupData.receivables : []);
+
       // Map Financial Accounts
       const mappedAccounts: FinancialAccount[] =
         accountsRows.length > 0
-          ? accountsRows.map((a: any) => ({
-              id: a.id,
-              name: a.name || 'Conta',
-              type: (a.account_type as any) || 'bank',
-              balance: Number(a.current_balance) || 0,
-              initialBalance: Number(a.initial_balance) || 0,
-              color: a.id === 'acc-1' ? '#ff7a00' : a.id === 'acc-2' ? '#00d632' : '#0a84ff',
-              isActive: a.is_active ?? true,
-            }))
-          : initialSystemData.financialAccounts;
+          ? accountsRows.map((a: any) => {
+              const backupAcc = backupData?.financialAccounts?.find((ba: any) => ba.id === a.id);
+              return {
+                id: a.id,
+                name: a.name || backupAcc?.name || 'Conta',
+                type: (a.account_type as any) || backupAcc?.type || 'bank',
+                balance: Number(a.current_balance) !== undefined && !isNaN(Number(a.current_balance)) ? Number(a.current_balance) : (backupAcc?.balance || 0),
+                initialBalance: Number(a.initial_balance) || backupAcc?.initialBalance || 0,
+                color: backupAcc?.color || (a.id === 'acc-1' ? '#ff7a00' : a.id === 'acc-2' ? '#00d632' : '#0a84ff'),
+                isActive: a.is_active ?? true,
+              };
+            })
+          : (backupData?.financialAccounts && backupData.financialAccounts.length > 0 ? backupData.financialAccounts : initialSystemData.financialAccounts);
 
       // Map Company Settings
       let mappedSettings = initialSystemData.settings;
@@ -589,10 +715,10 @@ export const supabaseSyncService = {
         financialAccounts: mappedAccounts,
         categories: backupData?.categories || initialSystemData.categories,
         clients: mappedClients,
-        projects: mappedProjects,
-        subscriptions: mappedSubscriptions,
-        receivables: mappedReceivables,
-        payables: mappedPayables,
+        projects: finalProjects,
+        subscriptions: finalSubscriptions,
+        receivables: finalReceivables,
+        payables: finalPayables,
         transfers: backupData?.transfers || [],
         reserves: backupData?.reserves || [],
         proLabore: backupData?.proLabore || [],
@@ -655,11 +781,11 @@ export const supabaseSyncService = {
   },
 
   /**
-   * Save individual client to Supabase
+   * Save individual client to Supabase, including pipeline stage and proposal data
    */
   async syncClient(client: Client): Promise<void> {
     try {
-      await supabase.from('clients').upsert({
+      const payload: any = {
         id: client.id,
         company_name: client.companyName,
         contact_name: client.contactName,
@@ -677,11 +803,186 @@ export const supabaseSyncService = {
         instagram: client.instagram,
         current_website: client.currentWebsite,
         is_recurring: client.isRecurring,
+        pipeline_stage: client.pipelineStage || (client.status === 'Cliente ativo' ? 'Fechado' : 'Prospectado'),
+        potential_value: client.potentialValue !== undefined ? client.potentialValue : null,
         created_at: client.createdAt,
         updated_at: new Date().toISOString(),
+      };
+
+      let { error } = await supabase.from('clients').upsert(payload);
+      if (error) {
+        // Fallback without potential_value & pipeline_stage
+        const { potential_value, pipeline_stage, ...fallbackPayload } = payload;
+        await supabase.from('clients').upsert(fallbackPayload);
+      }
+
+      // Also sync to leads
+      await supabase.from('leads').upsert({
+        id: 'lead-' + client.id,
+        name: client.contactName || client.companyName,
+        company: client.companyName,
+        phone: client.phone || client.whatsapp || '',
+        email: client.email || '',
+        status: client.pipelineStage || client.status || 'Prospectado',
+        value: client.potentialValue || client.totalSpent || 0,
+        source: client.origin || 'Prospecção ativa',
+        notes: client.notes || '',
+        created_at: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
       });
-    } catch {
-      // silent fallback
+
+      // Also sync to proposals if proposal value or services exist
+      if (
+        (client.potentialValue !== undefined && client.potentialValue > 0) ||
+        (client.proposedServices && client.proposedServices.length > 0) ||
+        client.pipelineStage === 'Negociação' ||
+        client.status === 'Proposta enviada'
+      ) {
+        await supabase.from('proposals').upsert({
+          id: 'prop-' + client.id,
+          client_id: client.id,
+          title: `Proposta Comercial • ${client.companyName}`,
+          total_value: Number(client.potentialValue) || 0,
+          status:
+            client.pipelineStage === 'Fechado'
+              ? 'Aprovada'
+              : client.pipelineStage === 'Perdido'
+              ? 'Recusada'
+              : 'Enviada',
+          items: client.proposedServices || [],
+          notes: client.notes || null,
+          created_at: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('syncClient error:', err);
+    }
+  },
+
+  /**
+   * Save pipeline stage update directly and immediately to Supabase
+   */
+  async syncClientStage(client: Client, newStage: PipelineStage): Promise<{ success: boolean; error?: string }> {
+    try {
+      const newStatus =
+        newStage === 'Fechado'
+          ? 'Cliente ativo'
+          : newStage === 'Perdido'
+          ? 'Perdido'
+          : newStage === 'Negociação'
+          ? 'Em negociação'
+          : client.status === 'Perdido' || client.status === 'Cancelado'
+          ? 'Lead'
+          : client.status || 'Lead';
+
+      // 1. Persist directly to leads table
+      await supabase.from('leads').upsert({
+        id: 'lead-' + client.id,
+        name: client.contactName || client.companyName,
+        company: client.companyName,
+        phone: client.phone || client.whatsapp || '',
+        email: client.email || '',
+        status: newStage,
+        value: client.potentialValue || client.totalSpent || 0,
+        source: client.origin || 'Prospecção ativa',
+        notes: client.notes || '',
+        created_at: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
+      });
+
+      // 2. Persist to clients table
+      const payload: any = {
+        id: client.id,
+        status: newStatus,
+        pipeline_stage: newStage,
+        updated_at: new Date().toISOString(),
+      };
+      let { error } = await supabase.from('clients').upsert(payload);
+      if (error) {
+        // Fallback if pipeline_stage column does not exist
+        await supabase.from('clients').update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        }).eq('id', client.id);
+      }
+
+      // 3. Update proposal status if proposal exists
+      if (newStage === 'Fechado' || newStage === 'Perdido') {
+        const propStatus = newStage === 'Fechado' ? 'Aprovada' : 'Recusada';
+        await supabase.from('proposals').update({ status: propStatus }).eq('client_id', client.id);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.warn('syncClientStage error:', err);
+      return { success: false, error: err?.message };
+    }
+  },
+
+  /**
+   * Save proposal directly and immediately to Supabase proposals, leads and clients tables
+   */
+  async syncProposal(
+    client: Client,
+    proposalValue: number,
+    proposedServices: string[] = [],
+    selectedServiceIds: string[] = [],
+    notes?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 1. Direct upsert into `proposals`
+      const proposalPayload = {
+        id: 'prop-' + client.id,
+        client_id: client.id,
+        title: `Proposta Comercial • ${client.companyName}`,
+        total_value: proposalValue,
+        status:
+          client.pipelineStage === 'Fechado'
+            ? 'Aprovada'
+            : client.pipelineStage === 'Perdido'
+            ? 'Recusada'
+            : 'Enviada',
+        items: proposedServices,
+        notes: notes !== undefined ? notes : client.notes || null,
+        created_at: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
+      };
+      await supabase.from('proposals').upsert(proposalPayload);
+
+      // 2. Direct upsert into `leads`
+      const leadPayload = {
+        id: 'lead-' + client.id,
+        name: client.contactName || client.companyName,
+        company: client.companyName,
+        phone: client.phone || client.whatsapp || '',
+        email: client.email || '',
+        status: client.pipelineStage || client.status || 'Negociação',
+        value: proposalValue,
+        source: client.origin || 'Prospecção ativa',
+        notes: notes !== undefined ? notes : client.notes || '',
+        created_at: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
+      };
+      await supabase.from('leads').upsert(leadPayload);
+
+      // 3. Update client row in `clients`
+      const clientUpdateWithVal = {
+        id: client.id,
+        potential_value: proposalValue,
+        pipeline_stage: client.pipelineStage || 'Negociação',
+        notes: notes !== undefined ? notes : client.notes,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: clientErr } = await supabase.from('clients').upsert(clientUpdateWithVal);
+      if (clientErr) {
+        // Fallback if potential_value / pipeline_stage columns not in remote clients table
+        await supabase.from('clients').upsert({
+          id: client.id,
+          notes: notes !== undefined ? notes : client.notes,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.warn('syncProposal error:', err);
+      return { success: false, error: err?.message };
     }
   },
 
@@ -693,9 +994,23 @@ export const supabaseSyncService = {
       await supabase.from('receivables').delete().eq('client_id', clientId);
       await supabase.from('contracts').delete().eq('client_id', clientId);
       await supabase.from('proposals').delete().eq('client_id', clientId);
+      await supabase.from('leads').delete().eq('id', 'lead-' + clientId);
+      await supabase.from('leads').delete().eq('id', clientId);
       await supabase.from('clients').delete().eq('id', clientId);
-    } catch {
-      // silent fallback
+    } catch (err) {
+      console.warn('deleteClient error:', err);
+    }
+  },
+
+  /**
+   * Delete a contract (project or subscription) directly from Supabase
+   */
+  async deleteContract(contractId: string): Promise<void> {
+    try {
+      await supabase.from('contracts').delete().eq('id', contractId);
+      await supabase.from('tasks').delete().eq('id', 'task-' + contractId);
+    } catch (err) {
+      console.warn('deleteContract error:', err);
     }
   },
 

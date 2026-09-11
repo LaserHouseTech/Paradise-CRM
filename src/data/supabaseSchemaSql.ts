@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS public.clients (
   address TEXT,
   status TEXT NOT NULL DEFAULT 'Cliente ativo',
   pipeline_stage TEXT DEFAULT 'Prospectado',
+  potential_value NUMERIC(12, 2) DEFAULT 0.00,
+  proposed_services JSONB DEFAULT '[]'::jsonb,
+  selected_service_ids JSONB DEFAULT '[]'::jsonb,
+  total_spent NUMERIC(12, 2) DEFAULT 0.00,
   origin TEXT DEFAULT 'Prospecção ativa',
   notes TEXT,
   avatar_url TEXT,
@@ -31,6 +35,13 @@ CREATE TABLE IF NOT EXISTS public.clients (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- MIGRATION COLUNAS COMPLEMENTARES CLIENTES (se a tabela já existia antes)
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS pipeline_stage TEXT DEFAULT 'Prospectado';
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS potential_value NUMERIC(12, 2) DEFAULT 0.00;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS proposed_services JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS selected_service_ids JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12, 2) DEFAULT 0.00;
 
 -- 3. TABELA: CONTRATOS
 CREATE TABLE IF NOT EXISTS public.contracts (

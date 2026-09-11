@@ -714,7 +714,17 @@ export const SettingsView: React.FC = () => {
                 { name: 'tasks', label: 'Tarefas de Entrega', count: data.projects.length },
                 { name: 'financial_accounts', label: 'Contas Bancárias', count: data.financialAccounts?.length || 0 },
                 { name: 'company_settings', label: 'Configurações da Empresa', count: 1 },
-                { name: 'proposals', label: 'Propostas Comerciais', count: 0 },
+                {
+                  name: 'proposals',
+                  label: 'Propostas Comerciais',
+                  count: data.clients.filter(
+                    (c) =>
+                      (c.potentialValue !== undefined && c.potentialValue > 0) ||
+                      (c.proposedServices && c.proposedServices.length > 0) ||
+                      c.pipelineStage === 'Negociação' ||
+                      c.status === 'Proposta enviada'
+                  ).length,
+                },
                 { name: 'app_state_backup', label: 'Snapshot Integral (Backup)', count: 1 },
               ].map((table) => {
                 const isFound = supabaseTestStatus?.tablesFound?.includes(table.name);

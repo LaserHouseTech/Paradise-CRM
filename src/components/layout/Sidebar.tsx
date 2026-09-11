@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import logoImg from '../logo.png';
 
 interface NavItem {
   id: string;
@@ -156,7 +157,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onCloseM
             <div
               className="relative w-8 h-8 rounded-full overflow-hidden flex items-center justify-center ring-1 ring-white/20 shadow-[0_0_14px_rgba(59,130,246,0.35)] shrink-0 bg-[#080910]"
             >
-              <img src="/logo.svg" alt="Paradiso" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img
+                src={logoImg}
+                alt="Paradiso"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.src = '/logo.svg';
+                }}
+              />
               <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/30 pointer-events-none" />
             </div>
             {!isCollapsed && (
