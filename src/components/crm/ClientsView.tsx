@@ -117,6 +117,9 @@ export const ClientsView: React.FC = () => {
     origin: 'Prospecção ativa' as ClientOrigin,
     status: 'Cliente ativo' as ClientStatus,
     pipelineStage: 'Fechado' as PipelineStage,
+    potentialValue: 697,
+    selectedServiceIds: [] as string[],
+    proposedServices: [] as string[],
     isRecurring: false,
   });
 
@@ -125,6 +128,25 @@ export const ClientsView: React.FC = () => {
 
   const handleOpenEditClient = (client: Client) => {
     setEditingClient(client);
+
+    const potVal =
+      client.potentialValue !== undefined && client.potentialValue !== null
+        ? client.potentialValue
+        : (client.totalSpent && client.totalSpent > 0 ? client.totalSpent : 697);
+
+    let initialServiceIds: string[] = [];
+    if (client.selectedServiceIds && client.selectedServiceIds.length > 0) {
+      initialServiceIds = client.selectedServiceIds;
+    } else if (client.proposedServices && client.proposedServices.length > 0) {
+      initialServiceIds = data.services
+        .filter((s) => client.proposedServices?.includes(s.name))
+        .map((s) => s.id);
+    } else {
+      const match = data.services.find((s) => s.defaultPrice === potVal);
+      if (match) initialServiceIds = [match.id];
+      else if (potVal === 697) initialServiceIds = ['srv-2'];
+    }
+
     setEditFormData({
       companyName: client.companyName || '',
       contactName: client.contactName || '',
@@ -142,9 +164,35 @@ export const ClientsView: React.FC = () => {
       origin: client.origin || 'Prospecção ativa',
       status: client.status || 'Cliente ativo',
       pipelineStage: client.pipelineStage || (client.status === 'Cliente ativo' || client.status === 'Cliente recorrente' ? 'Fechado' : 'Prospectado'),
+      potentialValue: potVal,
+      selectedServiceIds: initialServiceIds,
+      proposedServices: client.proposedServices || [],
       isRecurring: client.isRecurring || false,
     });
     setIsEditClientModalOpen(true);
+  };
+
+  const handleToggleEditService = (serviceId: string) => {
+    const isSelected = editFormData.selectedServiceIds.includes(serviceId);
+    const nextSelected = isSelected
+      ? editFormData.selectedServiceIds.filter((id) => id !== serviceId)
+      : [...editFormData.selectedServiceIds, serviceId];
+
+    const sum = nextSelected.reduce((total, id) => {
+      const s = data.services.find((srv) => srv.id === id);
+      return total + (s?.defaultPrice || 0);
+    }, 0);
+
+    const proposedNames = nextSelected
+      .map((id) => data.services.find((s) => s.id === id)?.name)
+      .filter(Boolean) as string[];
+
+    setEditFormData({
+      ...editFormData,
+      selectedServiceIds: nextSelected,
+      proposedServices: proposedNames,
+      potentialValue: sum > 0 ? sum : editFormData.potentialValue,
+    });
   };
 
   const handleSaveEditClient = (e: React.FormEvent) => {
@@ -416,10 +464,10 @@ export const ClientsView: React.FC = () => {
                         <img
                           src={client.avatarUrl}
                           alt={client.companyName}
-                          className="w-8 h-8 rounded-lg object-cover ring-1 ring-white/10 shrink-0 shadow-sm"
+                          className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10 shrink-0 shadow-sm"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-neutral-300 font-semibold text-xs shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-300 font-semibold text-xs shrink-0">
                           {client.companyName.charAt(0)}
                         </div>
                       )}
@@ -558,10 +606,10 @@ export const ClientsView: React.FC = () => {
                   <img
                     src={selectedClient.avatarUrl}
                     alt={selectedClient.companyName}
-                    className="w-14 h-14 rounded-2xl object-cover ring-2 ring-white/10 shadow-md shrink-0"
+                    className="w-14 h-14 rounded-full object-cover ring-2 ring-white/10 shadow-md shrink-0"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-md">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/10 flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-md">
                     {selectedClient.companyName.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -584,7 +632,7 @@ export const ClientsView: React.FC = () => {
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/30 transition text-xs font-semibold shadow-sm"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  <span>Editar Cadastro & Foto</span>
+                  <span>Editar Cadastro & Proposta</span>
                 </button>
                 <button
                   onClick={() => handleOpenDeleteClient(selectedClient)}
@@ -622,6 +670,64 @@ export const ClientsView: React.FC = () => {
                 <span className={`text-xs font-medium ${selectedClient.isRecurring ? 'text-emerald-400' : 'text-neutral-400'}`}>
                   {selectedClient.isRecurring ? 'Ativo (Recorrente)' : 'Sem plano'}
                 </span>
+              </div>
+            </div>
+
+            {/* Proposta Comercial & Serviços Negociados */}
+            <div className="p-4 rounded-xl bg-blue-500/[0.04] border border-blue-500/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Proposta Comercial & Serviços Inclusos
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-400">Valor da Proposta:</span>
+                  <span className="font-mono text-base font-bold text-emerald-400">
+                    {formatCurrency(
+                      selectedClient.potentialValue !== undefined && selectedClient.potentialValue !== null
+                        ? selectedClient.potentialValue
+                        : (selectedClient.totalSpent && selectedClient.totalSpent > 0 ? selectedClient.totalSpent : 697)
+                    )}
+                  </span>
+                  <button
+                    onClick={() => handleOpenEditClient(selectedClient)}
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition"
+                    title="Editar serviços e valor da proposta"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {(selectedClient.proposedServices && selectedClient.proposedServices.length > 0) ? (
+                  selectedClient.proposedServices.map((srv, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[11px] font-medium"
+                    >
+                      {srv}
+                    </span>
+                  ))
+                ) : (selectedClient.selectedServiceIds && selectedClient.selectedServiceIds.length > 0) ? (
+                  selectedClient.selectedServiceIds.map((id) => {
+                    const s = data.services.find((item) => item.id === id);
+                    return (
+                      <span
+                        key={id}
+                        className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[11px] font-medium"
+                      >
+                        {s?.name || id}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span className="text-xs text-neutral-400 italic">
+                    Nenhum serviço personalizado vinculado ainda. Clique em "Editar Cadastro & Proposta" para selecionar os serviços.
+                  </span>
+                )}
               </div>
             </div>
 
@@ -784,10 +890,10 @@ export const ClientsView: React.FC = () => {
                   <img
                     src={formData.avatarUrl}
                     alt="Preview"
-                    className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-500/50 shadow-md"
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-500/50 shadow-md"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-neutral-400 gap-1">
+                  <div className="w-16 h-16 rounded-full bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-neutral-400 gap-1">
                     <Camera className="w-5 h-5 text-neutral-400" />
                     <span className="text-[9px]">Sem foto</span>
                   </div>
@@ -1029,10 +1135,10 @@ export const ClientsView: React.FC = () => {
                     <img
                       src={editFormData.avatarUrl}
                       alt="Preview"
-                      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-500/50 shadow-md"
+                      className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-500/50 shadow-md"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-2xl bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-neutral-400 gap-1">
+                    <div className="w-16 h-16 rounded-full bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-neutral-400 gap-1">
                       <Camera className="w-5 h-5 text-neutral-400" />
                       <span className="text-[9px]">Sem foto</span>
                     </div>
@@ -1282,6 +1388,97 @@ export const ClientsView: React.FC = () => {
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
                 />
               </div>
+            </div>
+
+            {/* SELEÇÃO DE SERVIÇOS & VALOR DA PROPOSTA */}
+            <div className="p-4 rounded-xl bg-[#181920] border border-blue-500/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Serviços Inclusos na Proposta Comercial</span>
+                  </label>
+                  <p className="text-[11px] text-neutral-400">
+                    Selecione os serviços para compor o valor base da proposta deste cliente
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-400">Valor Final da Proposta:</span>
+                  <div className="relative w-36">
+                    <span className="absolute left-2.5 top-2 text-xs font-mono text-neutral-400">R$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="10"
+                      value={editFormData.potentialValue || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, potentialValue: parseFloat(e.target.value) || 0 })}
+                      className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-neutral-900 border border-blue-500/30 text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {data.services.map((srv) => {
+                  const isChecked = editFormData.selectedServiceIds.includes(srv.id);
+                  return (
+                    <div
+                      key={srv.id}
+                      onClick={() => handleToggleEditService(srv.id)}
+                      className={`p-2.5 rounded-xl border transition cursor-pointer flex items-start justify-between gap-2 ${
+                        isChecked
+                          ? 'bg-blue-500/10 border-blue-500/40 text-white'
+                          : 'bg-white/[0.02] border-white/5 text-neutral-400 hover:border-white/15'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div
+                          className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center border transition shrink-0 ${
+                            isChecked
+                              ? 'bg-blue-600 border-blue-500 text-white'
+                              : 'border-neutral-600 bg-neutral-900'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium leading-tight text-neutral-200">{srv.name}</p>
+                          <p className="text-[10px] text-neutral-500 line-clamp-1">{srv.category}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 font-mono text-xs">
+                        <span className="font-semibold text-neutral-200">
+                          {formatCurrency(srv.defaultPrice)}
+                        </span>
+                        {srv.monthlyPrice && srv.monthlyPrice > 0 && (
+                          <span className="block text-[9px] text-purple-400">
+                            +{formatCurrency(srv.monthlyPrice)}/mês
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {editFormData.selectedServiceIds.length > 0 && (
+                <div className="flex items-center justify-between text-[11px] text-neutral-400 pt-1 border-t border-white/5">
+                  <span>{editFormData.selectedServiceIds.length} serviço(s) selecionado(s)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sum = editFormData.selectedServiceIds.reduce((total, id) => {
+                        const s = data.services.find((srv) => srv.id === id);
+                        return total + (s?.defaultPrice || 0);
+                      }, 0);
+                      setEditFormData({ ...editFormData, potentialValue: sum });
+                    }}
+                    className="text-blue-400 hover:text-blue-300 transition text-[11px] underline"
+                  >
+                    Recalcular valor exato pela soma do catálogo
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>

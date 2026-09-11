@@ -58,6 +58,8 @@ export interface Client {
   nextAction?: string;
   isRecurring: boolean; // Cliente recorrente: sim/não
   totalSpent?: number;
+  selectedServiceIds?: string[];
+  proposedServices?: string[];
 }
 
 export type ProjectStatus = 

@@ -17,16 +17,26 @@ import {
   Sparkles,
   User,
   ArrowRight,
+  Pencil,
+  Briefcase,
+  Layers,
+  Calculator,
+  Tag,
+  Check,
+  Percent,
+  FileText,
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
 export const PipelineView: React.FC = () => {
   const {
     data,
+    updateClient,
     updateClientPipelineStage,
     updatePipelineStage,
     setSelectedClientId,
     addClient,
+    setCurrentView,
   } = useApp();
 
   const handleUpdateStage = (clientId: string, stage: PipelineStage) => {
@@ -35,6 +45,11 @@ export const PipelineView: React.FC = () => {
     } else if (updatePipelineStage) {
       updatePipelineStage(clientId, stage);
     }
+  };
+
+  const handleOpenDossier = (clientId: string) => {
+    setSelectedClientId(clientId);
+    setCurrentView('clients');
   };
 
   const stages: PipelineStage[] = [
@@ -107,6 +122,132 @@ export const PipelineView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'todos' | 'abertos' | 'fechados' | 'perdidos'>('todos');
 
+  // Proposal & Services Edit Modal State
+  const [proposalClient, setProposalClient] = useState<Client | null>(null);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [customServicePrices, setCustomServicePrices] = useState<Record<string, number>>({});
+  const [manualProposalValue, setManualProposalValue] = useState<string>('697');
+  const [discountAmount, setDiscountAmount] = useState<string>('0');
+  const [proposalNotes, setProposalNotes] = useState<string>('');
+  const [proposalToast, setProposalToast] = useState<string | null>(null);
+
+  // Proposal calculations
+  const calculateServicesSubtotal = (serviceIds: string[], priceOverrides: Record<string, number>): number => {
+    return serviceIds.reduce((sum, id) => {
+      const price = priceOverrides[id] !== undefined
+        ? priceOverrides[id]
+        : (data.services.find((s) => s.id === id)?.defaultPrice || 0);
+      return sum + price;
+    }, 0);
+  };
+
+  const calculateServicesMonthlyTotal = (serviceIds: string[]): number => {
+    return serviceIds.reduce((sum, id) => {
+      const service = data.services.find((s) => s.id === id);
+      return sum + (service?.monthlyPrice || 0);
+    }, 0);
+  };
+
+  const handleOpenProposalModal = (client: Client) => {
+    setProposalClient(client);
+
+    const currentVal =
+      client.potentialValue !== undefined && client.potentialValue !== null
+        ? client.potentialValue
+        : (client.totalSpent && client.totalSpent > 0 ? client.totalSpent : 697);
+
+    let initialServices: string[] = [];
+    if (client.selectedServiceIds && client.selectedServiceIds.length > 0) {
+      initialServices = client.selectedServiceIds;
+    } else if (client.proposedServices && client.proposedServices.length > 0) {
+      initialServices = data.services
+        .filter((s) => client.proposedServices?.includes(s.name))
+        .map((s) => s.id);
+    } else {
+      // Auto-match service by price or combo
+      const match = data.services.find((s) => s.defaultPrice === currentVal);
+      if (match) {
+        initialServices = [match.id];
+      } else if (currentVal === 697) {
+        const combo = data.services.find((s) => s.id === 'srv-2');
+        if (combo) initialServices = [combo.id];
+      }
+    }
+
+    setSelectedServiceIds(initialServices);
+    setCustomServicePrices({});
+    setDiscountAmount('0');
+    setManualProposalValue(currentVal.toString());
+    setProposalNotes(client.notes || '');
+  };
+
+  const handleToggleService = (serviceId: string) => {
+    const isSelected = selectedServiceIds.includes(serviceId);
+    const nextSelected = isSelected
+      ? selectedServiceIds.filter((id) => id !== serviceId)
+      : [...selectedServiceIds, serviceId];
+
+    setSelectedServiceIds(nextSelected);
+
+    // Auto calculate new proposal value
+    const subtotal = calculateServicesSubtotal(nextSelected, customServicePrices);
+    const discount = parseFloat(discountAmount.replace(',', '.')) || 0;
+    const finalVal = Math.max(0, subtotal - discount);
+    setManualProposalValue(finalVal.toString());
+  };
+
+  const handleServicePriceChange = (serviceId: string, newPriceStr: string) => {
+    const newPrice = parseFloat(newPriceStr.replace(',', '.')) || 0;
+    const updated = { ...customServicePrices, [serviceId]: newPrice };
+    setCustomServicePrices(updated);
+
+    const subtotal = calculateServicesSubtotal(selectedServiceIds, updated);
+    const discount = parseFloat(discountAmount.replace(',', '.')) || 0;
+    const finalVal = Math.max(0, subtotal - discount);
+    setManualProposalValue(finalVal.toString());
+  };
+
+  const handleDiscountChange = (newDiscountStr: string) => {
+    setDiscountAmount(newDiscountStr);
+    const discount = parseFloat(newDiscountStr.replace(',', '.')) || 0;
+    const subtotal = calculateServicesSubtotal(selectedServiceIds, customServicePrices);
+    const finalVal = Math.max(0, subtotal - discount);
+    setManualProposalValue(finalVal.toString());
+  };
+
+  const handleApplyPreset = (serviceIds: string[], presetVal?: number) => {
+    setSelectedServiceIds(serviceIds);
+    setCustomServicePrices({});
+    setDiscountAmount('0');
+    if (presetVal !== undefined) {
+      setManualProposalValue(presetVal.toString());
+    } else {
+      const subtotal = calculateServicesSubtotal(serviceIds, {});
+      setManualProposalValue(subtotal.toString());
+    }
+  };
+
+  const handleSaveProposal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proposalClient) return;
+
+    const finalVal = parseFloat(manualProposalValue.replace(',', '.')) || 0;
+    const proposedServiceNames = selectedServiceIds
+      .map((id) => data.services.find((s) => s.id === id)?.name)
+      .filter(Boolean) as string[];
+
+    updateClient(proposalClient.id, {
+      potentialValue: finalVal,
+      selectedServiceIds,
+      proposedServices: proposedServiceNames,
+      notes: proposalNotes,
+    });
+
+    setProposalToast(`Valor da proposta de "${proposalClient.companyName}" atualizado para ${formatCurrency(finalVal)}!`);
+    setTimeout(() => setProposalToast(null), 3500);
+    setProposalClient(null);
+  };
+
   // New Lead Modal state
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [leadStageTarget, setLeadStageTarget] = useState<PipelineStage>('Prospectado');
@@ -120,12 +261,15 @@ export const PipelineView: React.FC = () => {
     origin: 'Prospecção ativa' as ClientOrigin,
     stage: 'Prospectado' as PipelineStage,
     potentialValue: '697',
+    selectedServiceIds: ['srv-2'] as string[],
     nextAction: 'Enviar mensagem WhatsApp de apresentação',
     notes: '',
   });
 
   const handleOpenNewLeadModal = (defaultStage: PipelineStage = 'Prospectado') => {
     setLeadStageTarget(defaultStage);
+    const combo = data.services.find((s) => s.id === 'srv-2');
+    const defaultVal = combo ? combo.defaultPrice.toString() : '697';
     setNewLeadForm({
       companyName: '',
       contactName: '',
@@ -135,19 +279,41 @@ export const PipelineView: React.FC = () => {
       state: 'SP',
       origin: 'Prospecção ativa',
       stage: defaultStage,
-      potentialValue: '697',
+      potentialValue: defaultVal,
+      selectedServiceIds: combo ? [combo.id] : [],
       nextAction: 'Enviar mensagem WhatsApp de apresentação',
       notes: '',
     });
     setIsNewLeadModalOpen(true);
   };
 
+  const handleToggleNewLeadService = (serviceId: string) => {
+    const isSelected = newLeadForm.selectedServiceIds.includes(serviceId);
+    const nextSelected = isSelected
+      ? newLeadForm.selectedServiceIds.filter((id) => id !== serviceId)
+      : [...newLeadForm.selectedServiceIds, serviceId];
+
+    const sum = nextSelected.reduce((total, id) => {
+      const s = data.services.find((srv) => srv.id === id);
+      return total + (s?.defaultPrice || 0);
+    }, 0);
+
+    setNewLeadForm({
+      ...newLeadForm,
+      selectedServiceIds: nextSelected,
+      potentialValue: sum > 0 ? sum.toString() : newLeadForm.potentialValue,
+    });
+  };
+
   const handleSaveNewLead = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeadForm.companyName.trim() || !newLeadForm.contactName.trim()) return;
 
-    const potVal = parseFloat(newLeadForm.potentialValue.replace(',', '.')) || 697;
+    const potVal = parseFloat(newLeadForm.potentialValue.replace(',', '.')) || 0;
     const isClosed = newLeadForm.stage === 'Fechado';
+    const proposedServiceNames = newLeadForm.selectedServiceIds
+      .map((id) => data.services.find((s) => s.id === id)?.name)
+      .filter(Boolean) as string[];
 
     addClient({
       companyName: newLeadForm.companyName.trim(),
@@ -162,6 +328,8 @@ export const PipelineView: React.FC = () => {
       status: isClosed ? 'Cliente ativo' : 'Lead',
       pipelineStage: newLeadForm.stage,
       potentialValue: potVal,
+      selectedServiceIds: newLeadForm.selectedServiceIds,
+      proposedServices: proposedServiceNames,
       nextAction: newLeadForm.nextAction,
       notes: newLeadForm.notes,
       isRecurring: false,
@@ -219,7 +387,15 @@ export const PipelineView: React.FC = () => {
   }, 0);
 
   return (
-    <div id="pipeline-view" className="space-y-5 pb-12">
+    <div id="pipeline-view" className="space-y-5 pb-12 relative">
+      {/* Toast Notification for Proposal Update */}
+      {proposalToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-950/90 border border-emerald-500/40 text-emerald-300 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 duration-200 text-xs font-medium">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{proposalToast}</span>
+        </div>
+      )}
+
       {/* Top Header with Overview & Actions */}
       <div className="p-4 sm:p-5 rounded-2xl bg-[#13141a] border border-white/[0.08] space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -420,7 +596,7 @@ export const PipelineView: React.FC = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <h4
-                              onClick={() => setSelectedClientId(client.id)}
+                              onClick={() => handleOpenDossier(client.id)}
                               className="text-xs font-bold text-white hover:text-blue-400 cursor-pointer transition leading-tight truncate"
                               title={client.companyName}
                             >
@@ -431,9 +607,19 @@ export const PipelineView: React.FC = () => {
                               <span className="truncate">{client.contactName}</span>
                             </p>
                           </div>
-                          <span className="text-[11px] font-mono font-bold text-emerald-400 shrink-0">
-                            {formatCurrency(clientVal)}
-                          </span>
+
+                          {/* Interactive Proposal Price Tag */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenProposalModal(client)}
+                            className="group/val flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition text-right shrink-0 active:scale-95 shadow-sm"
+                            title="Clique para alterar serviços e valor da proposta"
+                          >
+                            <span className="text-[11px] font-mono font-bold">
+                              {formatCurrency(clientVal)}
+                            </span>
+                            <Pencil className="w-2.5 h-2.5 opacity-60 group-hover/val:opacity-100 transition text-emerald-400" />
+                          </button>
                         </div>
 
                         {/* Origin & Location */}
@@ -443,6 +629,26 @@ export const PipelineView: React.FC = () => {
                           </span>
                           <span className="text-[10px] text-neutral-400 truncate max-w-[120px]">
                             {client.city}/{client.state}
+                          </span>
+                        </div>
+
+                        {/* Proposed Services Indicator & Quick Edit */}
+                        <div
+                          onClick={() => handleOpenProposalModal(client)}
+                          className="p-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 hover:border-blue-500/30 transition cursor-pointer flex items-center justify-between gap-1.5 group/srv"
+                          title="Clique para alterar serviços e valor da proposta"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Briefcase className="w-3 h-3 text-blue-400 shrink-0 group-hover/srv:scale-110 transition" />
+                            <span className="text-[10px] text-neutral-300 truncate font-medium">
+                              {client.proposedServices && client.proposedServices.length > 0
+                                ? client.proposedServices.join(' + ')
+                                : 'Serviços: Definir proposta'}
+                            </span>
+                          </div>
+                          <span className="text-[9px] text-blue-400 font-semibold shrink-0 flex items-center gap-0.5">
+                            Alterar
+                            <ChevronRight className="w-2.5 h-2.5" />
                           </span>
                         </div>
 
@@ -484,7 +690,7 @@ export const PipelineView: React.FC = () => {
                               </a>
                             )}
                             <button
-                              onClick={() => setSelectedClientId(client.id)}
+                              onClick={() => handleOpenDossier(client.id)}
                               className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 text-[10px] font-medium"
                               title="Ver ficha completa do cliente"
                             >
@@ -650,6 +856,52 @@ export const PipelineView: React.FC = () => {
             </div>
           </div>
 
+          {/* Serviços inclusos na proposta do novo lead */}
+          <div>
+            <label className="block text-xs font-medium text-neutral-300 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+                <span>Serviços Inclusos na Proposta (clique para somar):</span>
+              </span>
+              <span className="text-[10px] text-neutral-400">
+                {newLeadForm.selectedServiceIds.length} selecionado(s)
+              </span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1">
+              {data.services
+                .filter((s) => s.isActive)
+                .map((srv) => {
+                  const isChecked = newLeadForm.selectedServiceIds.includes(srv.id);
+                  return (
+                    <button
+                      key={srv.id}
+                      type="button"
+                      onClick={() => handleToggleNewLeadService(srv.id)}
+                      className={`p-2 rounded-lg text-left border transition text-[11px] flex items-center justify-between gap-1.5 ${
+                        isChecked
+                          ? 'bg-blue-600/20 border-blue-500 text-white'
+                          : 'bg-white/[0.02] border-white/10 text-neutral-400 hover:border-white/20'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <span className="font-semibold block truncate">{srv.name}</span>
+                        <span className="text-[10px] text-emerald-400 font-mono">
+                          {formatCurrency(srv.defaultPrice)}
+                        </span>
+                      </div>
+                      <div
+                        className={`w-3.5 h-3.5 rounded flex items-center justify-center shrink-0 text-[10px] ${
+                          isChecked ? 'bg-blue-500 text-white' : 'border border-white/20'
+                        }`}
+                      >
+                        {isChecked && '✓'}
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">
@@ -670,7 +922,7 @@ export const PipelineView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">
-                Valor Estimado da Oportunidade (R$)
+                Valor da Proposta Comercial (R$)
               </label>
               <input
                 type="number"
@@ -678,7 +930,7 @@ export const PipelineView: React.FC = () => {
                 placeholder="697"
                 value={newLeadForm.potentialValue}
                 onChange={(e) => setNewLeadForm({ ...newLeadForm, potentialValue: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white font-mono font-bold text-emerald-400 focus:outline-none focus:border-white/30"
               />
             </div>
           </div>
@@ -721,6 +973,304 @@ export const PipelineView: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL: DEFINIR SERVIÇOS & VALOR DA PROPOSTA */}
+      <Modal
+        isOpen={!!proposalClient}
+        onClose={() => setProposalClient(null)}
+        title={proposalClient ? `Proposta Comercial • ${proposalClient.companyName}` : 'Proposta Comercial'}
+        subtitle="Selecione os serviços desejados para calcular o valor da proposta ou personalize livremente"
+        maxWidth="2xl"
+      >
+        {proposalClient && (
+          <form onSubmit={handleSaveProposal} className="space-y-5">
+            {/* Quick Summary Pill for the lead */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
+              <div>
+                <span className="text-xs text-neutral-400">Cliente / Lead:</span>
+                <h4 className="text-sm font-bold text-white flex items-center gap-1.5 mt-0.5">
+                  <User className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{proposalClient.contactName}</span>
+                  <span className="text-neutral-500 font-normal">({proposalClient.companyName})</span>
+                </h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-400">Etapa atual:</span>
+                <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold">
+                  {proposalClient.pipelineStage || 'Prospectado'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Presets Bar */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Pacotes & Atalhos Rápidos:</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset([])}
+                  className="text-[11px] text-neutral-400 hover:text-red-400 transition underline"
+                >
+                  Limpar seleção
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(['srv-2'], 697)}
+                  className={`p-2 rounded-xl text-left border transition text-xs ${
+                    selectedServiceIds.length === 1 && selectedServiceIds[0] === 'srv-2'
+                      ? 'bg-blue-600/20 border-blue-500/50 text-white shadow-sm'
+                      : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-neutral-300'
+                  }`}
+                >
+                  <span className="font-semibold block truncate">Combo Paradiso</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold block mt-0.5">
+                    R$ 697 + R$ 197/mês
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(['srv-1'], 997)}
+                  className={`p-2 rounded-xl text-left border transition text-xs ${
+                    selectedServiceIds.length === 1 && selectedServiceIds[0] === 'srv-1'
+                      ? 'bg-blue-600/20 border-blue-500/50 text-white shadow-sm'
+                      : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-neutral-300'
+                  }`}
+                >
+                  <span className="font-semibold block truncate">Site Avulso</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold block mt-0.5">
+                    R$ 997 (único)
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(['srv-4'], 350)}
+                  className={`p-2 rounded-xl text-left border transition text-xs ${
+                    selectedServiceIds.length === 1 && selectedServiceIds[0] === 'srv-4'
+                      ? 'bg-blue-600/20 border-blue-500/50 text-white shadow-sm'
+                      : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-neutral-300'
+                  }`}
+                >
+                  <span className="font-semibold block truncate">Landing Page</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold block mt-0.5">
+                    R$ 350 (único)
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(['srv-2', 'srv-6', 'srv-7'], 1237)}
+                  className={`p-2 rounded-xl text-left border transition text-xs ${
+                    selectedServiceIds.includes('srv-2') && selectedServiceIds.includes('srv-6') && selectedServiceIds.includes('srv-7')
+                      ? 'bg-blue-600/20 border-blue-500/50 text-white shadow-sm'
+                      : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-neutral-300'
+                  }`}
+                >
+                  <span className="font-semibold block truncate">Combo Completo</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold block mt-0.5">
+                    Site + SEO + Agenda
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Catalog Services Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-neutral-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Catálogo de Serviços Disponíveis:</span>
+                </span>
+                <span className="text-[11px] text-neutral-400 font-normal">
+                  {selectedServiceIds.length} selecionado(s)
+                </span>
+              </label>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {data.services
+                  .filter((s) => s.isActive)
+                  .map((service) => {
+                    const isSelected = selectedServiceIds.includes(service.id);
+                    const currentPrice =
+                      customServicePrices[service.id] !== undefined
+                        ? customServicePrices[service.id]
+                        : service.defaultPrice;
+
+                    return (
+                      <div
+                        key={service.id}
+                        className={`p-3 rounded-xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isSelected
+                            ? 'bg-blue-600/10 border-blue-500/40 text-white'
+                            : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-neutral-300'
+                        }`}
+                      >
+                        <div
+                          onClick={() => handleToggleService(service.id)}
+                          className="flex items-start gap-3 cursor-pointer flex-1 min-w-0"
+                        >
+                          <div
+                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition ${
+                              isSelected
+                                ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
+                                : 'border-white/20 bg-white/5'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold leading-tight truncate">
+                                {service.name}
+                              </span>
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-neutral-300">
+                                {service.category}
+                              </span>
+                            </div>
+                            {service.description && (
+                              <p className="text-[11px] text-neutral-400 mt-0.5 line-clamp-1">
+                                {service.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Price Display & Custom Price Box */}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                          {isSelected ? (
+                            <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-lg border border-white/10">
+                              <span className="text-[10px] text-neutral-400">R$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={currentPrice}
+                                onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
+                                className="w-20 bg-transparent text-right text-xs font-mono font-bold text-emerald-400 focus:outline-none"
+                                title="Editar valor negociado para este serviço"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-xs font-mono font-semibold text-neutral-400">
+                              {formatCurrency(service.defaultPrice)}
+                            </span>
+                          )}
+
+                          {service.monthlyPrice && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0">
+                              +{formatCurrency(service.monthlyPrice)}/mês
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Proposal Calculation Box */}
+            <div className="p-4 rounded-xl bg-[#161822] border border-white/10 space-y-3">
+              <div className="flex items-center justify-between text-xs text-neutral-300">
+                <span>Subtotal dos serviços selecionados:</span>
+                <span className="font-mono font-semibold text-white">
+                  {formatCurrency(calculateServicesSubtotal(selectedServiceIds, customServicePrices))}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-neutral-300">
+                <span className="flex items-center gap-1">
+                  <span>Desconto / Ajuste comercial (R$):</span>
+                </span>
+                <div className="flex items-center gap-1 w-28">
+                  <span className="text-neutral-500 font-mono text-xs">-</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={discountAmount}
+                    onChange={(e) => handleDiscountChange(e.target.value)}
+                    className="w-full px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-right font-mono text-xs text-white focus:outline-none focus:border-white/30"
+                  />
+                </div>
+              </div>
+
+              {/* Monthly Recurrence Preview if any service is recurring */}
+              {calculateServicesMonthlyTotal(selectedServiceIds) > 0 && (
+                <div className="flex items-center justify-between text-xs text-purple-300 pt-2 border-t border-white/5">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Recorrência Mensal Inclusa (Plano de Cuidado):</span>
+                  </span>
+                  <span className="font-mono font-bold text-purple-400">
+                    +{formatCurrency(calculateServicesMonthlyTotal(selectedServiceIds))}/mês
+                  </span>
+                </div>
+              )}
+
+              {/* Final Proposal Value */}
+              <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-bold text-white block">
+                    Valor Final da Proposta (R$) *
+                  </label>
+                  <span className="text-[10px] text-neutral-400">
+                    Calculado pelos serviços, mas você pode digitar qualquer valor livremente
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/30">
+                  <span className="text-xs font-bold text-emerald-400 font-mono">R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={manualProposalValue}
+                    onChange={(e) => setManualProposalValue(e.target.value)}
+                    className="w-28 bg-transparent text-right text-base font-mono font-bold text-emerald-400 focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">
+                Condições & Observações Comerciais da Proposta
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Ex: Proposta com desconto à vista via Pix ou 2x no cartão. Cliente tem interesse no Plano de Cuidado..."
+                value={proposalNotes}
+                onChange={(e) => setProposalNotes(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:border-white/30"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setProposalClient(null)}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-medium transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Salvar Proposta Comercial ({formatCurrency(parseFloat(manualProposalValue.replace(',', '.')) || 0)})</span>
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );
