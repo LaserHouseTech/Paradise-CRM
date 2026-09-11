@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Client, ClientStatus, ClientOrigin, PaymentMethod } from '../../types';
+import { Client, ClientStatus, ClientOrigin, PaymentMethod, PipelineStage } from '../../types';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import { Modal } from '../common/Modal';
 import {
@@ -93,6 +93,7 @@ export const ClientsView: React.FC = () => {
     notes: '',
     origin: 'Prospecção ativa' as ClientOrigin,
     status: 'Cliente ativo' as ClientStatus,
+    pipelineStage: 'Fechado' as PipelineStage,
     isRecurring: false,
   });
 
@@ -115,6 +116,7 @@ export const ClientsView: React.FC = () => {
     notes: '',
     origin: 'Prospecção ativa' as ClientOrigin,
     status: 'Cliente ativo' as ClientStatus,
+    pipelineStage: 'Fechado' as PipelineStage,
     isRecurring: false,
   });
 
@@ -139,6 +141,7 @@ export const ClientsView: React.FC = () => {
       notes: client.notes || '',
       origin: client.origin || 'Prospecção ativa',
       status: client.status || 'Cliente ativo',
+      pipelineStage: client.pipelineStage || (client.status === 'Cliente ativo' || client.status === 'Cliente recorrente' ? 'Fechado' : 'Prospectado'),
       isRecurring: client.isRecurring || false,
     });
     setIsEditClientModalOpen(true);
@@ -277,6 +280,7 @@ export const ClientsView: React.FC = () => {
       notes: '',
       origin: 'Prospecção ativa',
       status: 'Cliente ativo',
+      pipelineStage: 'Fechado',
       isRecurring: false,
     });
   };
@@ -330,9 +334,9 @@ export const ClientsView: React.FC = () => {
       )}
 
       {/* Top Header & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#13141a] border border-white/[0.08]">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-[#13141a] border border-white/[0.08]">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-2.5" />
             <input
               type="text"
@@ -376,7 +380,7 @@ export const ClientsView: React.FC = () => {
 
         <button
           onClick={() => setIsNewClientModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-neutral-950 text-xs font-semibold hover:bg-neutral-200 transition shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white text-neutral-950 text-xs font-semibold hover:bg-neutral-200 transition shrink-0"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>Novo Cliente</span>
@@ -386,7 +390,7 @@ export const ClientsView: React.FC = () => {
       {/* Clients Table / Cards */}
       <div className="rounded-2xl bg-[#13141a] border border-white/[0.08] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead>
               <tr className="border-b border-white/[0.08] text-neutral-400 font-medium">
                 <th className="p-4">Clínica / Empresa</th>
@@ -443,19 +447,28 @@ export const ClientsView: React.FC = () => {
                   </td>
 
                   <td className="p-4">
-                    <span
-                      className={`px-2 py-0.5 rounded font-medium text-[11px] ${
-                        client.status === 'Cliente recorrente'
-                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                          : client.status === 'Cliente ativo'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : client.status === 'Em negociação' || client.status === 'Proposta enviada'
-                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                          : 'bg-neutral-800 text-neutral-400'
-                      }`}
-                    >
-                      {client.status}
-                    </span>
+                    <div className="flex flex-col items-start gap-1">
+                      <span
+                        className={`px-2 py-0.5 rounded font-medium text-[11px] ${
+                          client.status === 'Cliente recorrente'
+                            ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                            : client.status === 'Cliente ativo'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : client.status === 'Em negociação' || client.status === 'Proposta enviada'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            : client.status === 'Lead'
+                            ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                            : 'bg-neutral-800 text-neutral-400'
+                        }`}
+                      >
+                        {client.status}
+                      </span>
+                      {client.pipelineStage && (
+                        <span className="text-[10px] text-neutral-400 font-mono">
+                          Funil: {client.pipelineStage}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   <td className="p-4">
@@ -560,7 +573,7 @@ export const ClientsView: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-neutral-400 mt-0.5">
-                    Responsável: <strong className="text-neutral-200">{selectedClient.contactName}</strong> • {selectedClient.status}
+                    Responsável: <strong className="text-neutral-200">{selectedClient.contactName}</strong> • {selectedClient.status} • Funil: <strong className="text-blue-400 font-medium">{selectedClient.pipelineStage || 'Prospectado'}</strong>
                   </p>
                 </div>
               </div>
@@ -932,19 +945,48 @@ export const ClientsView: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">Status Inicial</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
-            >
-              <option value="Cliente ativo" className="bg-neutral-900 text-white">Cliente Ativo</option>
-              <option value="Cliente recorrente" className="bg-neutral-900 text-white">Cliente Recorrente</option>
-              <option value="Lead" className="bg-neutral-900 text-white">Lead</option>
-              <option value="Em negociação" className="bg-neutral-900 text-white">Em Negociação</option>
-              <option value="Proposta enviada" className="bg-neutral-900 text-white">Proposta Enviada</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">Status do Cliente</label>
+              <select
+                value={formData.status}
+                onChange={(e) => {
+                  const newStatus = e.target.value as ClientStatus;
+                  let autoStage: PipelineStage = formData.pipelineStage;
+                  if (newStatus === 'Cliente ativo' || newStatus === 'Cliente recorrente') autoStage = 'Fechado';
+                  else if (newStatus === 'Lead' && formData.pipelineStage === 'Fechado') autoStage = 'Prospectado';
+                  else if (newStatus === 'Em negociação') autoStage = 'Negociação';
+                  else if (newStatus === 'Proposta enviada') autoStage = 'Proposta enviada';
+                  setFormData({ ...formData, status: newStatus, pipelineStage: autoStage });
+                }}
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
+              >
+                <option value="Cliente ativo" className="bg-neutral-900 text-white">Cliente Ativo</option>
+                <option value="Cliente recorrente" className="bg-neutral-900 text-white">Cliente Recorrente</option>
+                <option value="Lead" className="bg-neutral-900 text-white">Lead</option>
+                <option value="Em negociação" className="bg-neutral-900 text-white">Em Negociação</option>
+                <option value="Proposta enviada" className="bg-neutral-900 text-white">Proposta Enviada</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">Etapa no Funil de Vendas (CRM)</label>
+              <select
+                value={formData.pipelineStage}
+                onChange={(e) => setFormData({ ...formData, pipelineStage: e.target.value as PipelineStage })}
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
+              >
+                <option value="Prospectado" className="bg-neutral-900 text-white">1. Prospectado</option>
+                <option value="Primeiro contato" className="bg-neutral-900 text-white">2. Primeiro contato</option>
+                <option value="Respondeu" className="bg-neutral-900 text-white">3. Respondeu</option>
+                <option value="Qualificado" className="bg-neutral-900 text-white">4. Qualificado</option>
+                <option value="Demo apresentada" className="bg-neutral-900 text-white">5. Demo apresentada</option>
+                <option value="Proposta enviada" className="bg-neutral-900 text-white">6. Proposta enviada</option>
+                <option value="Negociação" className="bg-neutral-900 text-white">7. Negociação</option>
+                <option value="Fechado" className="bg-neutral-900 text-white">8. Fechado (Ganho)</option>
+                <option value="Perdido" className="bg-neutral-900 text-white">9. Perdido</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -1152,12 +1194,21 @@ export const ClientsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-1">Status</label>
                 <select
                   value={editFormData.status}
-                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                  onChange={(e) => {
+                    const newStatus = e.target.value as ClientStatus;
+                    let autoStage: PipelineStage = editFormData.pipelineStage;
+                    if (newStatus === 'Cliente ativo' || newStatus === 'Cliente recorrente') autoStage = 'Fechado';
+                    else if (newStatus === 'Lead' && editFormData.pipelineStage === 'Fechado') autoStage = 'Prospectado';
+                    else if (newStatus === 'Em negociação') autoStage = 'Negociação';
+                    else if (newStatus === 'Proposta enviada') autoStage = 'Proposta enviada';
+                    else if (newStatus === 'Cancelado') autoStage = 'Perdido';
+                    setEditFormData({ ...editFormData, status: newStatus, pipelineStage: autoStage });
+                  }}
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
                 >
                   <option value="Cliente ativo" className="bg-neutral-900 text-white">Cliente Ativo</option>
@@ -1167,6 +1218,25 @@ export const ClientsView: React.FC = () => {
                   <option value="Proposta enviada" className="bg-neutral-900 text-white">Proposta Enviada</option>
                   <option value="Cliente inativo" className="bg-neutral-900 text-white">Cliente Inativo</option>
                   <option value="Cancelado" className="bg-neutral-900 text-white">Cancelado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-neutral-400 mb-1">Etapa no Funil (CRM)</label>
+                <select
+                  value={editFormData.pipelineStage}
+                  onChange={(e) => setEditFormData({ ...editFormData, pipelineStage: e.target.value as PipelineStage })}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
+                >
+                  <option value="Prospectado" className="bg-neutral-900 text-white">1. Prospectado</option>
+                  <option value="Primeiro contato" className="bg-neutral-900 text-white">2. Primeiro contato</option>
+                  <option value="Respondeu" className="bg-neutral-900 text-white">3. Respondeu</option>
+                  <option value="Qualificado" className="bg-neutral-900 text-white">4. Qualificado</option>
+                  <option value="Demo apresentada" className="bg-neutral-900 text-white">5. Demo apresentada</option>
+                  <option value="Proposta enviada" className="bg-neutral-900 text-white">6. Proposta enviada</option>
+                  <option value="Negociação" className="bg-neutral-900 text-white">7. Negociação</option>
+                  <option value="Fechado" className="bg-neutral-900 text-white">8. Fechado (Ganho)</option>
+                  <option value="Perdido" className="bg-neutral-900 text-white">9. Perdido</option>
                 </select>
               </div>
 

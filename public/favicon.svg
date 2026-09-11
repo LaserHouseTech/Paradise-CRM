@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="paradiso-gradient" x1="15%" y1="5%" x2="75%" y2="95%">
+      <stop offset="0%" stop-color="#0099ff" />
+      <stop offset="35%" stop-color="#0062ff" />
+      <stop offset="70%" stop-color="#143df5" />
+      <stop offset="100%" stop-color="#3d0ce8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Circular background -->
+  <circle cx="256" cy="256" r="256" fill="url(#paradiso-gradient)" />
+
+  <g fill="#ffffff">
+    <!-- 7 Radiating Fan Rays -->
+    <!-- Ray 0 (Center - vertical) -->
+    <rect x="-17" y="-138" width="34" height="116" rx="4" transform="translate(256, 266)" />
+
+    <!-- Ray -1 (Left inner ~18 deg) -->
+    <rect x="-17" y="-133" width="34" height="112" rx="4" transform="translate(256, 266) rotate(-18.5)" />
+
+    <!-- Ray +1 (Right inner ~18 deg) -->
+    <rect x="-17" y="-133" width="34" height="112" rx="4" transform="translate(256, 266) rotate(18.5)" />
+
+    <!-- Ray -2 (Left middle ~37 deg) -->
+    <rect x="-17" y="-123" width="34" height="106" rx="4" transform="translate(256, 266) rotate(-37.5)" />
+
+    <!-- Ray +2 (Right middle ~37 deg) -->
+    <rect x="-17" y="-123" width="34" height="106" rx="4" transform="translate(256, 266) rotate(37.5)" />
+
+    <!-- Ray -3 (Left outer ~56 deg) -->
+    <rect x="-17" y="-113" width="34" height="100" rx="4" transform="translate(256, 266) rotate(-56.5)" />
+
+    <!-- Ray +3 (Right outer ~56 deg) -->
+    <rect x="-17" y="-113" width="34" height="100" rx="4" transform="translate(256, 266) rotate(56.5)" />
+
+    <!-- Curved Horizon Arch and Downward Sweeping Stem -->
+    <path d="
+      M 88,276
+      C 135,268 195,262 256,264
+      C 317,262 377,268 424,276
+      C 428,280 426,286 420,288
+      C 375,296 320,296 268,288
+      C 275,320 282,360 279,392
+      C 279,394 277,396 274,396
+      L 254,396
+      C 251,396 249,394 249,391
+      C 246,358 236,320 226,287
+      C 180,295 130,296 92,288
+      C 86,286 84,280 88,276
+      Z
+    " />
+  </g>
+</svg>

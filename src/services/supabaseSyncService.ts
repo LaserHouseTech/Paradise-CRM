@@ -75,11 +75,19 @@ export const supabaseSyncService = {
           instagram: c.instagram,
           current_website: c.currentWebsite,
           is_recurring: c.isRecurring,
+          pipeline_stage: c.pipelineStage || (c.status === 'Cliente ativo' ? 'Fechado' : 'Prospectado'),
           created_at: c.createdAt,
           updated_at: new Date().toISOString(),
         }));
 
-        const { error } = await supabase.from('clients').upsert(payload);
+        let { error } = await supabase.from('clients').upsert(payload);
+        if (error) {
+          // Fallback if pipeline_stage column is not in remote database yet
+          const fallbackPayload = payload.map(({ pipeline_stage, ...rest }) => rest);
+          const fallbackRes = await supabase.from('clients').upsert(fallbackPayload);
+          error = fallbackRes.error;
+        }
+
         if (!error) {
           tablesSynced.push(`clients (${data.clients.length})`);
           hasAnySuccess = true;
@@ -426,6 +434,17 @@ export const supabaseSyncService = {
           .filter((rec) => rec.clientId === c.id && rec.status === 'Pago')
           .reduce((sum, rec) => sum + rec.grossAmount, 0);
 
+        const defaultStage =
+          c.status === 'Cliente ativo' || c.status === 'Cliente recorrente'
+            ? 'Fechado'
+            : c.status === 'Em negociação'
+            ? 'Negociação'
+            : c.status === 'Proposta enviada'
+            ? 'Proposta enviada'
+            : c.status === 'Perdido' || c.status === 'Cancelado'
+            ? 'Perdido'
+            : 'Prospectado';
+
         return {
           id: c.id,
           companyName: c.company_name || 'Cliente Sem Nome',
@@ -438,6 +457,7 @@ export const supabaseSyncService = {
           state: c.state || '',
           address: c.address || '',
           status: (c.status as any) || 'Cliente ativo',
+          pipelineStage: (c.pipeline_stage as any) || defaultStage,
           origin: (c.origin as any) || 'Prospecção ativa',
           notes: c.notes || '',
           avatarUrl: c.avatar_url || undefined,
@@ -660,6 +680,28 @@ export const supabaseSyncService = {
       await supabase.from('contracts').delete().eq('client_id', clientId);
       await supabase.from('proposals').delete().eq('client_id', clientId);
       await supabase.from('clients').delete().eq('id', clientId);
+    } catch {
+      // silent fallback
+    }
+  },
+
+  /**
+   * Delete a receivable record directly from Supabase
+   */
+  async deleteReceivable(receivableId: string): Promise<void> {
+    try {
+      await supabase.from('receivables').delete().eq('id', receivableId);
+    } catch {
+      // silent fallback
+    }
+  },
+
+  /**
+   * Delete a payable / expense record directly from Supabase
+   */
+  async deletePayable(payableId: string): Promise<void> {
+    try {
+      await supabase.from('expenses').delete().eq('id', payableId);
     } catch {
       // silent fallback
     }

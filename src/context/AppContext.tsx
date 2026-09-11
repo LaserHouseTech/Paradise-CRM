@@ -28,11 +28,14 @@ interface AppContextType {
   currentView: string;
   selectedClientId: string | null;
   isLocked: boolean;
+  isSidebarCollapsed: boolean;
   setPeriod: (p: PeriodFilter) => void;
   setCustomDateRange: (range: { start: string; end: string }) => void;
   setCurrentView: (v: string) => void;
   setSelectedClientId: (id: string | null) => void;
   setIsLocked: (locked: boolean) => void;
+  setIsSidebarCollapsed: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
+  toggleSidebarCollapse: () => void;
   verifyLockPin: (pin: string) => boolean;
 
   // Supabase Live Auto-Sync
@@ -149,9 +152,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
       if (saved) {
         const parsed = JSON.parse(saved);
+
+        // Normalize clients so pipelineStage is always defined
+        const normalizedClients: Client[] = (parsed.clients || []).map((c: any) => {
+          let stage: PipelineStage = c.pipelineStage;
+          if (!stage) {
+            if (c.status === 'Lead') stage = 'Prospectado';
+            else if (c.status === 'Em negociação') stage = 'Negociação';
+            else if (c.status === 'Proposta enviada') stage = 'Proposta enviada';
+            else if (c.status === 'Perdido' || c.status === 'Cancelado') stage = 'Perdido';
+            else if (c.status === 'Cliente ativo' || c.status === 'Cliente recorrente') stage = 'Fechado';
+            else stage = 'Prospectado';
+          }
+          return {
+            ...c,
+            pipelineStage: stage,
+          };
+        });
+
         return {
           ...initialSystemData,
           ...parsed,
+          clients: normalizedClients,
           settings: {
             ...initialSystemData.settings,
             ...parsed.settings,
@@ -180,6 +202,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem('paradiso_sidebar_collapsed') === 'true';
+      }
+    } catch {}
+    return false;
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('paradiso_sidebar_collapsed', String(next));
+        }
+      } catch {}
+      return next;
+    });
+  };
 
   // Supabase Auto-Sync State
   const [supabaseSyncState, setSupabaseSyncState] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
@@ -368,8 +410,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // CLIENTS
   const addClient = (clientData: Omit<Client, 'id' | 'createdAt'>): Client => {
+    let pipelineStage = clientData.pipelineStage;
+    if (!pipelineStage) {
+      if (clientData.status === 'Lead') pipelineStage = 'Prospectado';
+      else if (clientData.status === 'Em negociação') pipelineStage = 'Negociação';
+      else if (clientData.status === 'Proposta enviada') pipelineStage = 'Proposta enviada';
+      else if (clientData.status === 'Perdido' || clientData.status === 'Cancelado') pipelineStage = 'Perdido';
+      else if (clientData.status === 'Cliente ativo' || clientData.status === 'Cliente recorrente') pipelineStage = 'Fechado';
+      else pipelineStage = 'Prospectado';
+    }
+
     const newClient: Client = {
       ...clientData,
+      pipelineStage,
       id: 'cli-' + Date.now(),
       createdAt: new Date().toISOString().split('T')[0],
       totalSpent: clientData.totalSpent || 0,
@@ -378,14 +431,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       clients: [newClient, ...prev.clients],
     }));
-    addAuditLog('Novo Cliente', `Cliente cadastrado: ${newClient.companyName}`, 'Client', newClient.id);
+    addAuditLog('Novo Cliente/Lead', `Cadastrado: ${newClient.companyName} (${newClient.status} - Etapa: ${newClient.pipelineStage})`, 'Client', newClient.id);
     return newClient;
   };
 
   const updateClient = (id: string, updates: Partial<Client>) => {
     setData((prev) => ({
       ...prev,
-      clients: prev.clients.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      clients: prev.clients.map((c) => {
+        if (c.id !== id) return c;
+        let pipelineStage = updates.pipelineStage ?? c.pipelineStage;
+        if (!updates.pipelineStage && updates.status && updates.status !== c.status) {
+          if (updates.status === 'Lead' && c.pipelineStage === 'Fechado') pipelineStage = 'Prospectado';
+          else if (updates.status === 'Em negociação') pipelineStage = 'Negociação';
+          else if (updates.status === 'Proposta enviada') pipelineStage = 'Proposta enviada';
+          else if (updates.status === 'Cliente ativo' || updates.status === 'Cliente recorrente') pipelineStage = 'Fechado';
+          else if (updates.status === 'Perdido' || updates.status === 'Cancelado') pipelineStage = 'Perdido';
+        }
+        if (!pipelineStage) {
+          pipelineStage = 'Prospectado';
+        }
+        return { ...c, ...updates, pipelineStage };
+      }),
     }));
     addAuditLog('Cliente Atualizado', `Cliente ID ${id} dados atualizados.`, 'Client', id);
   };
@@ -430,6 +497,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       newStatus = 'Proposta enviada';
     } else if (stage === 'Negociação') {
       newStatus = 'Em negociação';
+    } else {
+      if (client?.status === 'Perdido' || client?.status === 'Cancelado') {
+        newStatus = 'Lead';
+      }
     }
 
     setData((prev) => ({
@@ -438,7 +509,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         c.id === clientId ? { ...c, pipelineStage: stage, status: newStatus } : c
       ),
     }));
-    addAuditLog('Pipeline Atualizado', `Lead ${client?.companyName} movido para "${stage}".`, 'Client', clientId);
+    addAuditLog('Pipeline Atualizado', `Lead ${client?.companyName || clientId} movido para "${stage}".`, 'Client', clientId);
   };
 
   // PROJECTS
@@ -639,19 +710,107 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateReceivable = (id: string, updates: Partial<Receivable>) => {
-    setData((prev) => ({
-      ...prev,
-      receivables: prev.receivables.map((r) => (r.id === id ? { ...r, ...updates } : r)),
-    }));
+    setData((prev) => {
+      const oldRec = prev.receivables.find((r) => r.id === id);
+      if (!oldRec) return prev;
+      const updatedRec = { ...oldRec, ...updates };
+
+      let updatedAccounts = prev.financialAccounts;
+      let updatedClients = prev.clients;
+
+      // Handle balance adjustments if status changed between Pago and Pendente
+      const wasPaid = oldRec.status === 'Pago';
+      const isNowPaid = updatedRec.status === 'Pago';
+      const oldNet = oldRec.netAmount || oldRec.grossAmount;
+      const newNet = updatedRec.netAmount || updatedRec.grossAmount;
+
+      if (!wasPaid && isNowPaid && updatedRec.accountId) {
+        // Credit account
+        updatedAccounts = updatedAccounts.map((a) =>
+          a.id === updatedRec.accountId ? { ...a, balance: a.balance + newNet } : a
+        );
+        // Add to client totalSpent
+        updatedClients = updatedClients.map((c) =>
+          c.id === updatedRec.clientId ? { ...c, totalSpent: (c.totalSpent || 0) + updatedRec.grossAmount } : c
+        );
+      } else if (wasPaid && !isNowPaid && oldRec.accountId) {
+        // Reverse account credit
+        updatedAccounts = updatedAccounts.map((a) =>
+          a.id === oldRec.accountId ? { ...a, balance: a.balance - oldNet } : a
+        );
+        // Remove from client totalSpent
+        updatedClients = updatedClients.map((c) =>
+          c.id === oldRec.clientId ? { ...c, totalSpent: Math.max(0, (c.totalSpent || 0) - oldRec.grossAmount) } : c
+        );
+      } else if (wasPaid && isNowPaid) {
+        // Value adjusted while paid
+        const netDiff = newNet - oldNet;
+        const grossDiff = updatedRec.grossAmount - oldRec.grossAmount;
+        if (oldRec.accountId === updatedRec.accountId) {
+          if (netDiff !== 0 && updatedRec.accountId) {
+            updatedAccounts = updatedAccounts.map((a) =>
+              a.id === updatedRec.accountId ? { ...a, balance: a.balance + netDiff } : a
+            );
+          }
+        } else {
+          // Changed account
+          if (oldRec.accountId) {
+            updatedAccounts = updatedAccounts.map((a) =>
+              a.id === oldRec.accountId ? { ...a, balance: a.balance - oldNet } : a
+            );
+          }
+          if (updatedRec.accountId) {
+            updatedAccounts = updatedAccounts.map((a) =>
+              a.id === updatedRec.accountId ? { ...a, balance: a.balance + newNet } : a
+            );
+          }
+        }
+        if (grossDiff !== 0) {
+          updatedClients = updatedClients.map((c) =>
+            c.id === updatedRec.clientId ? { ...c, totalSpent: Math.max(0, (c.totalSpent || 0) + grossDiff) } : c
+          );
+        }
+      }
+
+      return {
+        ...prev,
+        receivables: prev.receivables.map((r) => (r.id === id ? updatedRec : r)),
+        financialAccounts: updatedAccounts,
+        clients: updatedClients,
+      };
+    });
     addAuditLog('Recebimento Atualizado', `Recebimento ID ${id} atualizado.`, 'Receivable', id);
   };
 
   const deleteReceivable = (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      receivables: prev.receivables.filter((r) => r.id !== id),
-    }));
-    addAuditLog('Recebimento Excluído', `Recebimento ID ${id} excluído.`, 'Receivable', id);
+    // Delete immediately from Supabase to prevent resurrection on background sync
+    void supabaseSyncService.deleteReceivable(id);
+
+    setData((prev) => {
+      const oldRec = prev.receivables.find((r) => r.id === id);
+      let updatedAccounts = prev.financialAccounts;
+      let updatedClients = prev.clients;
+
+      if (oldRec && oldRec.status === 'Pago') {
+        const net = oldRec.netAmount || oldRec.grossAmount;
+        if (oldRec.accountId) {
+          updatedAccounts = updatedAccounts.map((a) =>
+            a.id === oldRec.accountId ? { ...a, balance: a.balance - net } : a
+          );
+        }
+        updatedClients = updatedClients.map((c) =>
+          c.id === oldRec.clientId ? { ...c, totalSpent: Math.max(0, (c.totalSpent || 0) - oldRec.grossAmount) } : c
+        );
+      }
+
+      return {
+        ...prev,
+        receivables: prev.receivables.filter((r) => r.id !== id),
+        financialAccounts: updatedAccounts,
+        clients: updatedClients,
+      };
+    });
+    addAuditLog('Recebimento Excluído', `Recebimento ID ${id} excluído e fluxo de caixa recalculado.`, 'Receivable', id);
   };
 
   // PAYABLES (DESPESAS)
@@ -707,19 +866,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePayable = (id: string, updates: Partial<Payable>) => {
-    setData((prev) => ({
-      ...prev,
-      payables: prev.payables.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-    }));
+    setData((prev) => {
+      const oldPay = prev.payables.find((p) => p.id === id);
+      if (!oldPay) return prev;
+      const updatedPay = { ...oldPay, ...updates };
+
+      let updatedAccounts = prev.financialAccounts;
+      const wasPaid = oldPay.status === 'Pago';
+      const isNowPaid = updatedPay.status === 'Pago';
+
+      if (!wasPaid && isNowPaid && updatedPay.accountId) {
+        // Deduct from account
+        updatedAccounts = updatedAccounts.map((a) =>
+          a.id === updatedPay.accountId ? { ...a, balance: a.balance - updatedPay.amount } : a
+        );
+      } else if (wasPaid && !isNowPaid && oldPay.accountId) {
+        // Revert deduction
+        updatedAccounts = updatedAccounts.map((a) =>
+          a.id === oldPay.accountId ? { ...a, balance: a.balance + oldPay.amount } : a
+        );
+      } else if (wasPaid && isNowPaid) {
+        const diff = updatedPay.amount - oldPay.amount;
+        if (oldPay.accountId === updatedPay.accountId) {
+          if (diff !== 0 && updatedPay.accountId) {
+            updatedAccounts = updatedAccounts.map((a) =>
+              a.id === updatedPay.accountId ? { ...a, balance: a.balance - diff } : a
+            );
+          }
+        } else {
+          if (oldPay.accountId) {
+            updatedAccounts = updatedAccounts.map((a) =>
+              a.id === oldPay.accountId ? { ...a, balance: a.balance + oldPay.amount } : a
+            );
+          }
+          if (updatedPay.accountId) {
+            updatedAccounts = updatedAccounts.map((a) =>
+              a.id === updatedPay.accountId ? { ...a, balance: a.balance - updatedPay.amount } : a
+            );
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        payables: prev.payables.map((p) => (p.id === id ? updatedPay : p)),
+        financialAccounts: updatedAccounts,
+      };
+    });
     addAuditLog('Despesa Atualizada', `Despesa ID ${id} atualizada.`, 'Payable', id);
   };
 
   const deletePayable = (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      payables: prev.payables.filter((p) => p.id !== id),
-    }));
-    addAuditLog('Despesa Excluída', `Despesa ID ${id} excluída.`, 'Payable', id);
+    // Delete immediately from Supabase to prevent resurrection on background sync
+    void supabaseSyncService.deletePayable(id);
+
+    setData((prev) => {
+      const oldPay = prev.payables.find((p) => p.id === id);
+      let updatedAccounts = prev.financialAccounts;
+      if (oldPay && oldPay.status === 'Pago' && oldPay.accountId) {
+        updatedAccounts = updatedAccounts.map((a) =>
+          a.id === oldPay.accountId ? { ...a, balance: a.balance + oldPay.amount } : a
+        );
+      }
+      return {
+        ...prev,
+        payables: prev.payables.filter((p) => p.id !== id),
+        financialAccounts: updatedAccounts,
+      };
+    });
+    addAuditLog('Despesa Excluída', `Despesa ID ${id} excluída e fluxo de caixa recalculado.`, 'Payable', id);
   };
 
   // INFINITEPAY MANUAL REGISTRATION
@@ -1217,11 +1432,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentView,
         selectedClientId,
         isLocked,
+        isSidebarCollapsed,
         setPeriod,
         setCustomDateRange,
         setCurrentView,
         setSelectedClientId,
         setIsLocked,
+        setIsSidebarCollapsed,
+        toggleSidebarCollapse,
         verifyLockPin,
 
         supabaseSyncState,

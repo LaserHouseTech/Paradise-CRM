@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Search, X, Users, FolderKanban, Receipt, CreditCard, Repeat, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency } from '../../lib/formatters';
@@ -134,82 +135,100 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     return results.slice(0, 15);
   }, [query, data, setCurrentView, setSelectedClientId, onClose]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
-      <div
-        className="w-full max-w-2xl bg-[#14151b] border border-white/15 rounded-2xl shadow-2xl shadow-black overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Search Input */}
-        <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-[#181a22]">
-          <Search className="w-5 h-5 text-neutral-400" />
-          <input
-            type="text"
-            autoFocus
-            placeholder="Buscar por cliente, faturamento, projeto, despesa, fornecedor..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder:text-neutral-500"
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 p-3 sm:p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+            onClick={onClose}
+            aria-hidden="true"
           />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="p-1 rounded text-neutral-400 hover:text-white hover:bg-white/10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-          <kbd className="px-2 py-0.5 text-[10px] bg-white/10 text-neutral-400 rounded font-mono">
-            ESC
-          </kbd>
-        </div>
 
-        {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 divide-y divide-white/[0.04]">
-          {query.trim() === '' ? (
-            <div className="p-8 text-center text-xs text-neutral-500">
-              Digite para buscar clientes, projetos, cobranças, despesas ou assinaturas ativas.
+          {/* Dialog Container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: -10, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.96, y: -8, filter: 'blur(2px)' }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-2xl bg-[#0d101a]/92 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl shadow-black/95 overflow-hidden flex flex-col ring-1 ring-white/10 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Input */}
+            <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-white/[0.02]">
+              <Search className="w-5 h-5 text-blue-400" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Buscar por cliente, faturamento, projeto, despesa, fornecedor..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder:text-neutral-500"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <kbd className="px-2 py-0.5 text-[10px] bg-white/10 text-neutral-400 rounded-md font-mono border border-white/10">
+                ESC
+              </kbd>
             </div>
-          ) : searchResults.length === 0 ? (
-            <div className="p-8 text-center text-xs text-neutral-500">
-              Nenhum resultado encontrado para &ldquo;{query}&rdquo;.
-            </div>
-          ) : (
-            searchResults.map((item) => (
-              <div
-                key={`${item.type}-${item.id}`}
-                onClick={item.action}
-                className="p-3 rounded-xl hover:bg-white/[0.06] cursor-pointer transition flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-neutral-300">
-                    {item.type === 'client' && <Users className="w-4 h-4 text-blue-400" />}
-                    {item.type === 'project' && <FolderKanban className="w-4 h-4 text-purple-400" />}
-                    {item.type === 'receivable' && <Receipt className="w-4 h-4 text-emerald-400" />}
-                    {item.type === 'payable' && <CreditCard className="w-4 h-4 text-amber-400" />}
-                    {item.type === 'subscription' && <Repeat className="w-4 h-4 text-cyan-400" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{item.title}</p>
-                    <p className="text-xs text-neutral-400 truncate">{item.subtitle}</p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 shrink-0 ml-3">
-                  {item.badge && (
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/10 text-neutral-300">
-                      {item.badge}
-                    </span>
-                  )}
-                  <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition transform group-hover:translate-x-0.5" />
+            {/* Results List */}
+            <div className="max-h-96 overflow-y-auto p-2 divide-y divide-white/[0.04]">
+              {query.trim() === '' ? (
+                <div className="p-8 text-center text-xs text-neutral-500">
+                  Digite para buscar clientes, projetos, cobranças, despesas ou assinaturas ativas.
                 </div>
-              </div>
-            ))
-          )}
+              ) : searchResults.length === 0 ? (
+                <div className="p-8 text-center text-xs text-neutral-500">
+                  Nenhum resultado encontrado para &ldquo;{query}&rdquo;.
+                </div>
+              ) : (
+                searchResults.map((item) => (
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    onClick={item.action}
+                    className="p-3 rounded-xl hover:bg-white/[0.06] cursor-pointer transition flex items-center justify-between group active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-neutral-300 group-hover:border-blue-500/40 group-hover:shadow-[0_0_12px_rgba(59,130,246,0.2)] transition">
+                        {item.type === 'client' && <Users className="w-4 h-4 text-blue-400" />}
+                        {item.type === 'project' && <FolderKanban className="w-4 h-4 text-purple-400" />}
+                        {item.type === 'receivable' && <Receipt className="w-4 h-4 text-emerald-400" />}
+                        {item.type === 'payable' && <CreditCard className="w-4 h-4 text-amber-400" />}
+                        {item.type === 'subscription' && <Repeat className="w-4 h-4 text-cyan-400" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{item.title}</p>
+                        <p className="text-xs text-neutral-400 truncate">{item.subtitle}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      {item.badge && (
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/10">
+                          {item.badge}
+                        </span>
+                      )}
+                      <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };

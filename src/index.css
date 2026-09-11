@@ -1,18 +1,120 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --space-bg: #06070a;
+    --space-card: rgba(13, 16, 26, 0.72);
+    --space-card-border: rgba(255, 255, 255, 0.08);
+    --space-glass-border: rgba(255, 255, 255, 0.12);
+    --space-accent: #3b82f6;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
     color-scheme: dark;
-    background-color: #0d0e11;
+    background-color: var(--space-bg);
     color: #f1f2f6;
+    overflow-x: hidden;
   }
 }
 
-/* Apple-style minimalist custom scrollbar */
+/* Deep Space Glassmorphism Global Directives */
+[class*="bg-[#13141a]"] {
+  background-color: rgba(13, 16, 26, 0.7) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[class*="bg-[#13141a]"]:hover {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 14px 36px -5px rgba(0, 0, 0, 0.65), 0 0 20px -3px rgba(59, 130, 246, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+[class*="bg-[#15161d]"] {
+  background-color: rgba(14, 18, 30, 0.82) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+[class*="bg-[#181a22]"] {
+  background-color: rgba(18, 22, 36, 0.88) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+[class*="bg-[#121318]"] {
+  background-color: rgba(9, 11, 18, 0.82) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+[class*="bg-[#0f1014]"] {
+  background-color: rgba(8, 10, 16, 0.8) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+[class*="bg-[#0d0e11]"] {
+  background-color: #06070a !important;
+}
+
+/* Glassmorphic custom utility classes */
+.glass-panel {
+  background: rgba(13, 16, 26, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-dropdown {
+  background: rgba(11, 14, 24, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.85), 0 0 25px -5px rgba(59, 130, 246, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Cosmic Animations */
+@keyframes cosmic-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.7));
+  }
+}
+
+.animate-cosmic-pulse {
+  animation: cosmic-pulse 3s infinite ease-in-out;
+}
+
+@keyframes nebula-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.03);
+  }
+}
+
+.animate-nebula {
+  animation: nebula-float 12s infinite ease-in-out;
+}
+
+/* Space-grade minimalist custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -22,8 +124,10 @@
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
+  backdrop-filter: blur(4px);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
 }

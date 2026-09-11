@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.clients (
   state TEXT,
   address TEXT,
   status TEXT NOT NULL DEFAULT 'Cliente ativo',
+  pipeline_stage TEXT DEFAULT 'Prospectado',
   origin TEXT DEFAULT 'Prospecção ativa',
   notes TEXT,
   avatar_url TEXT,

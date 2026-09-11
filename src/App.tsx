@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -27,23 +28,33 @@ import { ReportsView } from './components/reports/ReportsView';
 import { SettingsView } from './components/settings/SettingsView';
 
 const MainContent: React.FC = () => {
-  const { currentView, isLocked } = useApp();
+  const { currentView, isLocked, toggleSidebarCollapse } = useApp();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Global keyboard shortcuts (Cmd+K / Ctrl+K for Search)
+  // Global keyboard shortcuts (Cmd+K / Ctrl+K for Search, Cmd+B / Ctrl+B for Sidebar)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsSearchOpen((prev) => !prev);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebarCollapse();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [toggleSidebarCollapse]);
+
+  // Close mobile sidebar when view changes
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [currentView]);
 
   if (isLocked) {
     return <LockScreen />;
@@ -101,20 +112,54 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#0d0e11] text-neutral-200 overflow-hidden font-sans select-none antialiased">
-      {/* Sidebar */}
-      <Sidebar />
+    <div className="relative flex h-screen bg-[#06070a] text-neutral-200 overflow-hidden font-sans select-none antialiased">
+      {/* Deep Space Cosmic Ambient Lighting & Star Dust Mesh */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+        {/* Deep Sapphire space dust glow top left */}
+        <div className="absolute -top-[25%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-blue-600/[0.07] blur-[140px] animate-nebula" />
+        {/* Celestial indigo nebula center right */}
+        <div className="absolute top-[25%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/[0.05] blur-[160px]" />
+        {/* Deep violet cosmic aura bottom center */}
+        <div className="absolute -bottom-[20%] left-[25%] w-[65vw] h-[65vw] rounded-full bg-violet-900/[0.06] blur-[180px]" />
+        {/* Fine celestial stardust grid */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px)`,
+            backgroundSize: '32px 32px',
+          }}
+        />
+      </div>
+
+      {/* Sidebar: Desktop + Mobile Drawer */}
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
       {/* Main App Canvas */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header
           onOpenQuickAction={() => setIsQuickActionOpen(true)}
           onOpenGlobalSearch={() => setIsSearchOpen(true)}
           onOpenAlertsModal={() => setIsAlertsOpen(true)}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
 
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="max-w-7xl mx-auto">{renderView()}</div>
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="max-w-7xl mx-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentView}
+                initial={{ opacity: 0, y: 8, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -6, filter: 'blur(2px)' }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {renderView()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </main>
       </div>
 

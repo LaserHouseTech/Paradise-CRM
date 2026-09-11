@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   calculateDashboardMetrics,
@@ -20,6 +20,8 @@ import {
   CheckCircle,
   Plus,
   ArrowRight,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -62,6 +64,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickAction 
     data.subscriptions,
     data.projects
   );
+
+  // Dismissed alerts state persisted in localStorage
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('dismissed_attention_alerts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const dismissAlert = (id: string) => {
+    setDismissedAlertIds((prev) => {
+      const updated = prev.includes(id) ? prev : [...prev, id];
+      try {
+        localStorage.setItem('dismissed_attention_alerts', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const dismissAllAlerts = () => {
+    const allIds = alerts.map((a) => a.id);
+    setDismissedAlertIds((prev) => {
+      const updated = Array.from(new Set([...prev, ...allIds]));
+      try {
+        localStorage.setItem('dismissed_attention_alerts', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const restoreDismissedAlerts = () => {
+    setDismissedAlertIds([]);
+    try {
+      localStorage.removeItem('dismissed_attention_alerts');
+    } catch {
+      // ignore
+    }
+  };
+
+  const visibleAlerts = alerts.filter((a) => !dismissedAlertIds.includes(a.id));
+  const dismissedCount = alerts.filter((a) => dismissedAlertIds.includes(a.id)).length;
 
   // --- CHART 1: Receitas x Despesas por Mês (Dinâmico com dados reais) ---
   const currentYear = new Date().getFullYear();
@@ -228,26 +277,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickAction 
       </div>
 
       {/* SECTION: Attention / Alertas */}
-      {alerts.length > 0 && (
+      {visibleAlerts.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between px-1 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
               <span className="text-xs font-semibold uppercase tracking-wider text-neutral-300">
                 Atenção Imediata
               </span>
+              <span className="text-[11px] text-neutral-500">
+                • {visibleAlerts.length} pendência(s)
+              </span>
             </div>
-            <span className="text-[11px] text-neutral-500">
-              {alerts.length} pendência(s) detectadas
-            </span>
+
+            <div className="flex items-center gap-3">
+              {dismissedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={restoreDismissedAlerts}
+                  className="text-[11px] text-neutral-400 hover:text-neutral-200 flex items-center gap-1 transition px-2 py-0.5 rounded-lg hover:bg-white/5"
+                  title="Restaurar notificações ocultadas"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Restaurar ocultadas ({dismissedCount})</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={dismissAllAlerts}
+                className="text-[11px] text-neutral-400 hover:text-neutral-200 flex items-center gap-1 transition px-2 py-0.5 rounded-lg hover:bg-white/5"
+                title="Fechar todas as notificações de atenção"
+              >
+                <X className="w-3 h-3" />
+                <span>Fechar todas</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {alerts.slice(0, 3).map((alert) => (
+            {visibleAlerts.slice(0, 3).map((alert) => (
               <div
                 key={alert.id}
                 onClick={() => alert.actionRoute && setCurrentView(alert.actionRoute)}
-                className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition hover:scale-[1.01] ${
+                className={`group p-3.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition hover:scale-[1.005] ${
                   alert.type === 'danger'
                     ? 'bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/15'
                     : alert.type === 'warning'
@@ -255,14 +327,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenQuickAction 
                     : 'bg-blue-500/10 border-blue-500/20 text-blue-300 hover:bg-blue-500/15'
                 }`}
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-white truncate">{alert.title}</p>
                   <p className="text-[11px] text-neutral-300 truncate mt-0.5">{alert.description}</p>
                 </div>
-                <ArrowRight className="w-4 h-4 shrink-0 opacity-70" />
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-0.5 transition" />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissAlert(alert.id);
+                    }}
+                    title="Fechar notificação"
+                    className="p-1 rounded-lg hover:bg-white/15 text-neutral-400 hover:text-white transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* When all alerts have been dismissed */}
+      {alerts.length > 0 && visibleAlerts.length === 0 && (
+        <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-neutral-400 text-xs">
+          <div className="flex items-center gap-2 text-neutral-400">
+            <CheckCircle className="w-4 h-4 text-emerald-500/80" />
+            <span>Notificações de atenção imediata fechadas ({dismissedCount}).</span>
+          </div>
+          <button
+            type="button"
+            onClick={restoreDismissedAlerts}
+            className="flex items-center gap-1 text-[11px] text-neutral-300 hover:text-white font-medium hover:underline transition"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Restaurar notificações</span>
+          </button>
         </div>
       )}
 
